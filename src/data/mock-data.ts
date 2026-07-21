@@ -382,3 +382,96 @@ export function draftEmail(buyer: Buyer, prop: Match) {
     body: `Hi ${buyer.name.split(" ")[0]},\n\nA new listing hit your search this morning and it scores well against what we outlined:\n\n• ${prop.addr} (${prop.hood}) — ${prop.price}, ${prop.beds} bd / ${prop.baths} ba, ${prop.sqft} sqft\n• ${prop.reasons[0].text}\n${prop.reasons[1] ? "• " + prop.reasons[1].text : ""}\n\nTradeoff to know: ${prop.tradeoffs[0]}.\n\nWant me to set up a showing this week? Thursday after 4 or Saturday morning both work on my end.\n\n— Avery`,
   };
 }
+
+// ── OM Studio demo data (offering memorandum). All figures are FICTIONAL. ─────
+export interface OmProject {
+  id: string; name: string; addr: string; type: string; market: string;
+  status: string; edited: string; owner: string; price: string;
+}
+export interface OmKpi { label: string; value: string; status: string; src: string }
+export interface OmComp {
+  addr: string; sold: string; price: string; psf: string; dist: string; source: string; verified: boolean;
+}
+
+export const OM = {
+  projects: [
+    { id: "om1", name: "Hawthorne Exchange", addr: "1134 SE Hawthorne Blvd", type: "Mixed-use multifamily", market: "Portland — Central Eastside", status: "Draft", edited: "Today 8:40 AM", owner: "Avery Sandoval", price: "$8,450,000" },
+    { id: "om2", name: "Lents Crossing Retail", addr: "9204 SE Foster Rd", type: "Neighborhood retail", market: "Portland — Lents", status: "In review", edited: "Jul 18", owner: "Avery Sandoval", price: "$4,200,000" },
+  ] as OmProject[],
+  pages: [
+    { id: "cover", label: "Cover" },
+    { id: "exec", label: "Executive Summary" },
+    { id: "highlights", label: "Investment Highlights", flag: true },
+    { id: "overview", label: "Property Overview", flag: true },
+    { id: "location", label: "Location & Connectivity", flag: true },
+    { id: "market", label: "Market Overview", flag: true },
+    { id: "financial", label: "Financial Summary", flag: true },
+    { id: "rentroll", label: "Rent Roll / Tenant Summary" },
+    { id: "comps", label: "Comparable Sales", flag: true },
+    { id: "risk", label: "Risk Factors & Disclosures", flag: true },
+    { id: "contact", label: "Contact / Call to Action" },
+  ] as { id: string; label: string; flag?: boolean }[],
+  kpis: [
+    { label: "Asking price", value: "$8,450,000", status: "Imported", src: "Engagement letter" },
+    { label: "Cap rate", value: "5.62%", status: "Calculated", src: "NOI ÷ asking price" },
+    { label: "NOI (T-12)", value: "$474,890", status: "Imported", src: "2025 operating statement" },
+    { label: "Occupancy", value: "94.2%", status: "Imported", src: "Rent roll Jul 2026" },
+    { label: "Price / unit", value: "$402,381", status: "Calculated", src: "21 units" },
+    { label: "Price / SF", value: "—", status: "Pending review", src: "Rentable SF unconfirmed" },
+  ] as OmKpi[],
+  rentroll: [
+    { unit: "C-101", tenant: "Blue Fin Coffee (retail)", sf: "1,450", exp: "03/2028", mo: "$4,350", yr: "$52,200", status: "Current" },
+    { unit: "C-102", tenant: "Vacant — in lease-up", sf: "1,180", exp: "—", mo: "—", yr: "—", status: "Vacant" },
+    { unit: "204", tenant: "Residential — 1BR", sf: "685", exp: "MTM", mo: "$1,595", yr: "$19,140", status: "MTM" },
+    { unit: "207", tenant: "Residential — 1BR", sf: "702", exp: "01/2027", mo: "$1,675", yr: "$20,100", status: "Current" },
+    { unit: "305", tenant: "Residential — 2BR", sf: "940", exp: "11/2026", mo: "$2,150", yr: "$25,800", status: "Current" },
+    { unit: "308", tenant: "Residential — 2BR", sf: "955", exp: "08/2027", mo: "$2,225", yr: "$26,700", status: "Current" },
+  ],
+  rentrollNote: "21 units total — 6 shown on this page. Imported from rent roll dated Jul 1, 2026. Demo data.",
+  comps: [
+    { addr: "2204 SE Division St", sold: "04/2026", price: "$7,900,000", psf: "$329/SF", dist: "0.8 mi", source: "County deed + data service", verified: true },
+    { addr: "811 SE Stark St", sold: "06/2026", price: "$9,100,000", psf: "$342/SF", dist: "1.1 mi", source: "Broker-reported", verified: false },
+    { addr: "5030 NE Sandy Blvd", sold: "12/2025", price: "$6,200,000", psf: "$301/SF", dist: "2.3 mi", source: "County deed", verified: true },
+    { addr: "3906 N Mississippi Ave", sold: "02/2026", price: "$5,400,000", psf: "$287/SF", dist: "3.4 mi", source: "County deed", verified: true },
+  ] as OmComp[],
+  highlights: [
+    { n: "01", text: "Corner-anchored mixed-use block with 21 units over two stabilized retail bays on SE Hawthorne.", flag: null },
+    { n: "02", text: "94.2% occupied with staggered rollover — no more than 31% of SF expires in any single year through 2030.", flag: null },
+    { n: "03", text: "In-place residential rents sit below the recent comp set, supporting mark-to-market on turnover.", flag: "Needs review — cite the comp set or rent survey" },
+    { n: "04", text: "Systems renewed: TPO roof 2021, common-area electrical panel upgrade 2023.", flag: null },
+    { n: "05", text: "Fee-simple offering, unpriced guidance at $8,450,000 with offers reviewed as received.", flag: null },
+  ] as { n: string; text: string; flag: string | null }[],
+  risks: [
+    "Unreinforced-masonry (URM) designation: retrofit scope and cost are under review by the seller's engineer.",
+    "Retail bay C-102 is vacant; underwriting assumes 9 months to stabilized lease-up at $22/SF NNN.",
+    "Rentable square footage differs between the 2019 architect set (26,900 SF) and county record (25,400 SF).",
+    "Figures in this demo document are placeholders and must be replaced with verified source data before distribution.",
+  ],
+  compliance: [
+    { id: "k1", title: "Missing disclosure — seismic", body: "URM retrofit status is referenced in Risk Factors but no engineer letter is attached." },
+    { id: "k2", title: "Unsupported claim — “below-market rents”", body: "Investment Highlights #03 needs a citation to the comp set or a rent survey." },
+    { id: "k3", title: "Photo rights pending", body: "2 interior photos await the photographer license — they are excluded from export until cleared." },
+    { id: "k4", title: "Unverified financial — Price / SF", body: "Rentable SF conflicts between architect plans (26,900) and county record (25,400)." },
+    { id: "k5", title: "Incomplete attribution — Market Overview", body: "Vacancy and absorption stats have no named source. Attach the research report or remove them." },
+  ] as { id: string; title: string; body: string }[],
+  brandKits: [
+    { name: "PDX Homes — Commercial", broker: "Avery Sandoval · OR #201415632", contact: "(503) 555-0100 · averys@pdxhomes.example", disclaimer: "Information herein was obtained from sources deemed reliable but is not guaranteed. Buyers must verify all facts independently. Demo document — not an offer to sell." },
+    { name: "Sandoval Private Brokerage", broker: "Avery Sandoval, Principal Broker · OR #201415632", contact: "(503) 555-0101 · avery@sandovalpb.example", disclaimer: "This material is confidential, furnished solely for evaluation, and may not be reproduced. All figures require independent verification. Demo document — not an offer." },
+  ] as { name: string; broker: string; contact: string; disclaimer: string }[],
+  templates: [
+    { id: "t1", name: "Institutional Investment", family: "institutional", desc: "Restrained, data-forward, full financial appendix" },
+    { id: "t2", name: "Luxury Commercial", family: "luxury", desc: "Photography-led spreads, long-form narrative" },
+    { id: "t3", name: "Multifamily", family: "multifamily", desc: "Unit-mix and rent-roll emphasis, rollover charts" },
+    { id: "t4", name: "Retail / Office", family: "retail_office", desc: "Tenancy, WALT and trade-area focus" },
+    { id: "t5", name: "Development Opportunity", family: "development", desc: "Entitlements, massing and land-basis story" },
+  ] as { id: string; name: string; family: string; desc: string }[],
+  sources: [
+    { id: "photos", label: "Approved property photos", meta: "12 files · photographer license on file for 10", ok: true },
+    { id: "plans", label: "Floor plans", meta: "2 PDFs · architect set 2019", ok: true },
+    { id: "maps", label: "Maps", meta: "Parcel + transit map", ok: true },
+    { id: "rentroll", label: "Rent roll", meta: "CSV · dated Jul 1, 2026", ok: true },
+    { id: "fin", label: "Financials (T-12)", meta: "2025 operating statement", ok: true },
+    { id: "comps", label: "Sales comps", meta: "4 records · 1 broker-reported", ok: true },
+    { id: "research", label: "Market research", meta: "Not attached — Market Overview will show Needs review", ok: false },
+  ] as { id: string; label: string; meta: string; ok: boolean }[],
+};

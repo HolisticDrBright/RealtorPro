@@ -132,9 +132,85 @@ workspace/
 
 ## Documentation
 
-- [`docs/API.md`](./docs/API.md) — every endpoint with request/response examples.
+- [`docs/API.md`](./docs/API.md) — base endpoints with request/response examples.
 - [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — the fact ledger, provider
   adapters, local storage, and the future hosted webhook relay.
+- [`docs/MODULES.md`](./docs/MODULES.md) — the five extended modules (endpoints,
+  workflows, guardrails, and paid-provider notes).
+
+## Extended modules
+
+Five modules build on the base app; all are local-first, source-grounded,
+editable, and audit-friendly. See [`docs/MODULES.md`](./docs/MODULES.md) for the
+full API and every guardrail. **All demo/seed figures are fictional.**
+
+### Development Visualizer (`Dev Visualizer` nav)
+Turns authorized aerials/site plans/surveys/maps into controlled concept
+visualizations (site-boundary overlay, land teaser, massing, future-use board,
+construction-sequence video, aerial reel). **Workflow:** create project → source
+& rights review → visual-direction controls → storyboard → generation queue →
+review/export. A **glowing boundary overlay is only allowed with a verified
+boundary source** (survey / site plan / approved GIS-GeoJSON / manual
+confirmation); otherwise it is prohibited with a clear explanation. Every
+visualization carries a required, user-editable disclosure (construction videos
+use the "not actual construction progress" label), and **export is locked until
+the disclosure is approved**. Providers (`MediaGenerationProvider`,
+`VideoGenerationProvider`, `MapOverlayProvider`) run on a **local mock** with a
+Higgsfield-compatible adapter behind env vars.
+
+### OM Quality Gate (`OM Studio` nav)
+Source-grounded offering memorandums with the mandatory **Three-Lens Review**:
+(1) source & number verification (re-trace + recompute every figure), (2) design
+& brand verification (against the user's own brand/template; flags unapproved
+external branding for **human review**, never auto-removing it), (3) editability
+& export verification (real editable PPTX text + native tables, PPTX/PDF export).
+**Workflow:** wizard (property → sources → brand+template with a rights
+confirmation) → builder (11 pages, source-linked facts, KPIs marked
+Imported/Calculated/Pending/TBD) → **Review & compliance** (findings → resolve →
+approval gate) → **export unlocks only after approval**. Editable **PPTX**
+(PptxGenJS), **XLSX** (ExcelJS), and **PDF** (provider abstraction + local
+pdf-lib fallback); pending values export `—`, never a fabricated number.
+
+### Rent Roll Studio (`Rent Roll Studio` nav)
+`Upload → map → validate → resolve → analyze → export` for multifamily,
+commercial, and mixed-use. Detects columns, normalizes (keeping source-vs-
+normalized), validates (duplicates, missing IDs, invalid dates, inconsistent
+totals, rent/SF anomalies, occupancy mismatches, missing tenant fields), and
+computes occupancy/NOI/cap-rate/etc. only when supported — storing the formula +
+source fact IDs. Exports a six-tab Excel workbook. Privacy: local-only
+processing and tenant-PII redaction; warns before any external AI send. Approved
+rent rolls feed OM Studio.
+
+### Comp Lab (`Comp Lab` nav)
+`Import authorized export → normalize → filter → compare → explain → export`.
+Produces a **transparent comparability score** (weighted blend of objective
+dimensions that have data) — never an appraisal, "best comp", or invented
+adjustment. Every comp shows source, freshness, missing fields, and verification
+status. Agent adjustments are labeled assumptions, not facts. Exports XLSX +
+client PDF (with disclaimers).
+
+### Signal Scout (`Signal Scout` nav)
+An **explainable** opportunity queue from agent-approved sources (FUB, uploaded
+& licensed MLS/public-record, sphere, inbound) — **not** a "who will sell"
+predictor. Confidence reflects **data completeness**, never likelihood of
+selling. Each signal shows its exact source, freshness, why it surfaced,
+confidence basis, and a suggested action. One-click actions (pursue, snooze,
+dismiss, create FUB task, add FUB note, draft outreach) are all explicit and
+audited; **outreach is draft-only and never auto-sent**. No scraping; no
+protected-class/demographic/credit/health data.
+
+### Quick test of each workflow
+```bash
+npm run setup          # migrate + seed (fictional demo data for every module)
+npm run dev            # then use the nav, or:
+
+# OM: create → verify → resolve → approve → export (export is 403 until approved)
+curl -X POST localhost:3000/api/om/drafts/om1/verify -d '{}'
+# Rent Roll: CSV → workbook
+curl -X POST localhost:3000/api/rent-roll/import -H 'content-type: application/json' \
+  -d '{"name":"t","content":"Unit,Tenant,SqFt,Lease End,Monthly Rent,Status\nA,Blue Fin,1450,03/2028,4350,Current"}'
+# Comp Lab, Signal Scout, Visualizer: see docs/MODULES.md
+```
 
 ---
 

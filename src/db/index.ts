@@ -2,8 +2,11 @@ import "server-only";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import fs from "node:fs";
-import * as schema from "./schema";
+import * as baseSchema from "./schema";
+import * as moduleSchema from "./schema.modules";
 import { DB_FILE, WORKSPACE_SUBDIRS } from "@/lib/paths";
+
+const schema = { ...baseSchema, ...moduleSchema };
 
 /**
  * Single shared SQLite connection for the app (server-only).

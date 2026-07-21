@@ -89,3 +89,39 @@ export function Spinner({ size = 14, onDark = false }: { size?: number; onDark?:
     />
   );
 }
+
+export const IconOm = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+  </Base>
+);
+
+export const IconViz = (p: IconProps) => (
+  <Base {...p}>
+    <rect x="2" y="2" width="20" height="20" rx="0" />
+    <path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 7h5M17 17h5" />
+  </Base>
+);
+
+export const IconRent = (p: IconProps) => (
+  <Base {...p}>
+    <rect x="4" y="2" width="16" height="20" />
+    <path d="M9 22v-4h6v4M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01" />
+  </Base>
+);
+
+export const IconComp = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M3 3v18h18" />
+    <rect x="7" y="12" width="3" height="6" />
+    <rect x="12" y="8" width="3" height="10" />
+    <rect x="17" y="5" width="3" height="13" />
+  </Base>
+);
+
+export const IconSignal = (p: IconProps) => (
+  <Base {...p}>
+    <circle cx="12" cy="12" r="2" />
+    <path d="M12 2a10 10 0 0 1 10 10M12 6a6 6 0 0 1 6 6M4.9 19.1A10 10 0 0 1 2 12" />
+  </Base>
+);

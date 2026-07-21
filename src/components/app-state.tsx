@@ -19,7 +19,18 @@ import { DATA, draftEmail, type Buyer, type Match } from "@/data/mock-data";
  * simulated behavior if the API is unavailable, so screens never break.
  */
 
-export type Screen = "today" | "scout" | "studio" | "people" | "fub" | "settings";
+export type Screen =
+  | "today"
+  | "scout"
+  | "studio"
+  | "om"
+  | "visualizer"
+  | "rentroll"
+  | "complab"
+  | "signals"
+  | "people"
+  | "fub"
+  | "settings";
 export type ImportState = "idle" | "parsing" | "ready" | "error";
 export type CampaignState = "idle" | "generating" | "review";
 export type FubSync = "healthy" | "sync-error" | "disconnected";
