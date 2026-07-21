@@ -1,0 +1,8 @@
+{
+  "extends": ["next/core-web-vitals"],
+  "ignorePatterns": ["drizzle/**", "workspace/**", ".next/**", "node_modules/**"],
+  "rules": {
+    "@next/next/no-img-element": "off",
+    "@next/next/no-page-custom-font": "off"
+  }
+}
