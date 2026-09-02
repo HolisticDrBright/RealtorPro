@@ -57,6 +57,7 @@ export default function DashboardPage() {
         <Kpi label="YTD Sales Volume" value={fmtMoney(k.ytd.volume)} delta={delta(k.ytd.volume, k.ytd.lastYear.volume)} spark={data.monthly.map((m) => m.volume)} />
         <Kpi label="YTD Closed Transactions" value={String(k.ytd.count)} delta={delta(k.ytd.count, k.ytd.lastYear.count)} spark={data.monthly.map((m) => m.net)} />
         <Kpi label="YTD GCI / Net Income" value={fmtMoney(k.ytd.net)} sub={<span>GCI {fmtMoney(k.ytd.gci)}</span>} delta={delta(k.ytd.net, k.ytd.lastYear.net)} spark={data.monthly.map((m) => m.net)} />
+        <div className="2xl:order-last"><Kpi label="Pipeline Value" value={fmtMoney(k.pipeline.value)} sub={<span className="text-ok">Est. GCI {fmtMoney(k.pipeline.gci)}</span>} /></div>
         <div className="card px-5 py-4 col-span-2 min-w-0">
           <div className="flex items-baseline gap-2 flex-wrap"><div className="kicker">Annual Income Goal</div><div className="ml-auto text-[18px] font-semibold tnum">{g.pct}%</div></div>
           <div className="mt-1.5 text-[22px] font-semibold tracking-tight tnum leading-none">{fmtMoney(g.current)} <span className="text-ink-3 font-normal">/ {fmtMoney(g.goal)}</span></div>
@@ -65,7 +66,6 @@ export default function DashboardPage() {
         </div>
         <Kpi label="Pending Volume" value={fmtMoney(k.pendingVolume)} sub={<Link href="/transactions" className="link text-info">{k.pendingCount} transaction{k.pendingCount === 1 ? "" : "s"} · {fmtMoney(k.pendingNet)} net pending</Link>} />
         <Kpi label="Active Listing Volume" value={fmtMoney(k.activeListingVolume)} sub={<Link href="/listings" className="link text-info">{k.activeListingCount} listing{k.activeListingCount === 1 ? "" : "s"}</Link>} />
-        <Kpi label="Pipeline Value" value={fmtMoney(k.pipeline.value)} sub={<span className="text-ok">Est. GCI {fmtMoney(k.pipeline.gci)}</span>} />
       </div>
 
       {/* Row 2 — priorities · schedule · calls */}
