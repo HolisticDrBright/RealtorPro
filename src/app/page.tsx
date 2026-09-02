@@ -53,7 +53,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Row 1 — KPIs */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4 2xl:grid-cols-8">
         <Kpi label="YTD Sales Volume" value={fmtMoney(k.ytd.volume)} delta={delta(k.ytd.volume, k.ytd.lastYear.volume)} spark={data.monthly.map((m) => m.volume)} />
         <Kpi label="YTD Closed Transactions" value={String(k.ytd.count)} delta={delta(k.ytd.count, k.ytd.lastYear.count)} spark={data.monthly.map((m) => m.net)} />
         <Kpi label="YTD GCI / Net Income" value={fmtMoney(k.ytd.net)} sub={<span>GCI {fmtMoney(k.ytd.gci)}</span>} delta={delta(k.ytd.net, k.ytd.lastYear.net)} spark={data.monthly.map((m) => m.net)} />
@@ -69,7 +69,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Row 2 — priorities · schedule · calls */}
-      <div className="grid gap-4 xl:grid-cols-[1.25fr_0.8fr_1.4fr]">
+      <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-[1.25fr_0.8fr_1.4fr]">
         <Card title={<h2 className="card-title flex items-center gap-2">Today’s Priorities <span className="pill bg-crit text-white normal-case tracking-normal">{prios.length}</span></h2>} action={<Link href="/tasks" className="card-link">View all tasks →</Link>}>
           {prios.length === 0 && <Empty title="Nothing urgent" body="No overdue tasks, deadlines or neglected hot buyers. Enjoy it — or add a task." action={<button className="btn btn-sm" onClick={() => quickAdd("tasks")}>+ Task</button>} />}
           <ul className="divide-y divide-line-2">
@@ -94,7 +94,7 @@ export default function DashboardPage() {
           {data.schedule.tomorrow.length > 0 && <><div className="kicker mt-4 mb-1">Tomorrow</div><ul className="divide-y divide-line-2">{data.schedule.tomorrow.map((a) => <li key={a.id} className="flex gap-3 py-2"><div className="w-16 shrink-0 text-[12.5px] text-ink-3 tnum">{fmtTime(a.startsAt)}</div><div className="text-[12.5px] truncate">{a.title}</div></li>)}</ul></>}
         </Card>
 
-        <Card title="Call List" action={<span className="ml-auto text-[12px] text-ink-3 tnum">{data.callStats.scheduled} Scheduled · {data.callStats.completed} Completed · {data.callStats.remaining} Remaining</span>}>
+        <Card className="xl:col-span-2 2xl:col-span-1" title="Call List" action={<span className="ml-auto text-[12px] text-ink-3 tnum">{data.callStats.scheduled} Scheduled · {data.callStats.completed} Completed · {data.callStats.remaining} Remaining</span>}>
           {data.callList.length === 0 && <Empty title="No calls scheduled today" action={<button className="btn btn-sm" onClick={() => quickAdd("calls")}>+ Call</button>} />}
           <ul className="divide-y divide-line-2">
             {data.callList.filter((c) => c.status !== "completed").slice(0, 6).map((c) => (
@@ -117,7 +117,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Row 3 — hot buyers · active listings · in escrow */}
-      <div className="grid gap-4 xl:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
         <Card title={<h2 className="card-title">Hot Buyers <span className="text-crit" aria-hidden="true">●</span></h2>} action={<Link href="/buyers" className="card-link">View all →</Link>}>
           <div className="grid grid-cols-[1fr_auto_auto] text-[11px] text-ink-3 uppercase tracking-wide pb-1 gap-3"><span /><span>Last contact</span><span>Next follow-up</span></div>
           <ul className="divide-y divide-line-2">
@@ -150,7 +150,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Row 4 — chart · goal · alerts · activity */}
-      <div className="grid gap-4 xl:grid-cols-[1.3fr_1fr_1fr_0.9fr]">
+      <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-[1.3fr_1fr_1fr_0.9fr]">
         <Card title="YTD Sales Performance" action={<span className="card-link">This Year</span>}>
           <Bars data={data.monthly} series={[{ key: "volume", label: "Sales Volume", color: "#18181b" }, { key: "net", label: "Net Income", color: "#b8962e" }]} />
         </Card>
