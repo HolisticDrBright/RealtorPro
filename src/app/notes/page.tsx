@@ -14,6 +14,7 @@ export default function NotesPage() {
   const [quick, setQuick] = useState("");
   const [attach, setAttach] = useState<{ contactId?: string; propertyId?: string }>({});
   const { data, loading } = useApi<{ items: Note[] }>("/api/notes?limit=1000");
+  const vault = useApi<{ notes: { id: string; title: string; excerpt: string | null; path: string; uri: string; modifiedAt: string | null; contactId: string | null }[]; status: { exists: boolean; dirName: string | null } }>(q.trim() ? `/api/obsidian/notes?q=${encodeURIComponent(q)}` : "/api/obsidian/notes");
   const lk = useLookups();
   const crud = useCrud("notes");
   const rows = useMemo(() => (data?.items ?? []).filter((n) => !q || `${n.body} ${lk.nameOf(n.contactId)} ${lk.addressOf(n.propertyId)}`.toLowerCase().includes(q.toLowerCase())).sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.createdAt.localeCompare(a.createdAt)), [data, q, lk]);
@@ -34,6 +35,12 @@ export default function NotesPage() {
           <div className="flex items-center gap-1 mt-2 pt-2 border-t border-line-2"><button className="btn btn-ghost btn-sm" onClick={() => api.update("notes", n.id, { pinned: !n.pinned })}>{n.pinned ? "Unpin" : "Pin"}</button><span className="ml-auto"><RowMenu onEdit={() => crud.openEdit(n as unknown as Record<string, unknown>)} onDelete={() => crud.remove(n.id, "note")} /></span></div>
         </Card>)}
       </div>
+      {vault.data?.status.exists && (
+        <Card className="mt-4" title={`Obsidian · ${vault.data.status.dirName}`} action={<Link href="/integrations" className="card-link">Import records from vault →</Link>}>
+          {(vault.data.notes ?? []).length === 0 && <div className="text-[13px] text-ink-3">No vault notes{q ? ` match “${q}”` : " yet"}.</div>}
+          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">{(vault.data.notes ?? []).map((n) => <a key={n.id} href={n.uri} className="block rounded-lg border border-line p-3 text-[13px] hover:border-ink-3"><div className="font-medium truncate">{n.title}</div>{n.excerpt && <div className="text-ink-3 text-[12.5px] line-clamp-2 mt-0.5">{n.excerpt}</div>}<div className="text-[11.5px] text-ink-3 mt-1 truncate">{n.path}{n.contactId ? ` · ${lk.nameOf(n.contactId)}` : ""} · {fmtDateTime(n.modifiedAt)}</div></a>)}</div>
+        </Card>
+      )}
       {crud.panel}
     </div>
   );

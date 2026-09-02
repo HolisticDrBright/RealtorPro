@@ -24,6 +24,7 @@ export default function ContactPage() {
   const appts = useApi<{ items: { id: string; title: string; startsAt: string; type: string }[] }>(`/api/appointments?contactId=${id}`);
   const buyer = useApi<{ items: { id: string; temperature: string; priceMin: number | null; priceMax: number | null; targetAreas: string[]; timeline: string | null }[] }>(`/api/buyers?contactId=${id}`);
   const seller = useApi<{ items: { id: string; stage: string; propertyAddress: string | null; expectedListPrice: number | null }[] }>(`/api/sellers?contactId=${id}`);
+  const vault = useApi<{ notes: { id: string; title: string; excerpt: string | null; path: string; uri: string; modifiedAt: string | null }[]; status: { exists: boolean } }>(`/api/obsidian/notes?contactId=${id}`);
   const lk = useLookups();
   const crud = useCrud("contacts");
   const [logType, setLogType] = useState("call");
@@ -99,6 +100,12 @@ export default function ContactPage() {
             {(notes.data?.items ?? []).map((n) => <div key={n.id} className="py-2 border-b border-line-2 text-[13px]"><div className="whitespace-pre-wrap">{n.pinned && <span className="text-gold mr-1">★</span>}{n.body}</div><div className="text-[11.5px] text-ink-3 mt-1">{relative(n.createdAt)}</div></div>)}
             {!k.notes && (notes.data?.items ?? []).length === 0 && <div className="text-[13px] text-ink-3">No notes yet.</div>}
           </Card>
+          {vault.data?.status.exists && (
+            <Card title="Obsidian">
+              {(vault.data.notes ?? []).length === 0 && <div className="text-[13px] text-ink-3">No vault notes mention {k.firstName} yet. Add <code>contact: {name}</code> to a note’s frontmatter or a [[{name}]] wikilink.</div>}
+              {(vault.data.notes ?? []).map((n) => <a key={n.id} href={n.uri} className="block py-2 border-b border-line-2 text-[13px] hover:bg-ground rounded"><div className="font-medium">{n.title}</div>{n.excerpt && <div className="text-ink-3 text-[12.5px] line-clamp-2">{n.excerpt}</div>}<div className="text-[11.5px] text-ink-3 mt-0.5">{n.path} · {fmtDate(n.modifiedAt)}</div></a>)}
+            </Card>
+          )}
         </div>
       </div>
       {crud.panel}

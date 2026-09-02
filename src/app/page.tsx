@@ -34,6 +34,8 @@ export default function DashboardPage() {
   const { data, loading, error, reload } = useApi<Dash>("/api/dashboard", { refreshMs: 60000 });
   const [order, setOrder] = useState<string[] | null>(null);
   const [drag, setDrag] = useState<string | null>(null);
+  const [briefing, setBriefing] = useState<string | null>(null);
+  const [briefBusy, setBriefBusy] = useState(false);
   if (loading) return <Loading rows={6} />;
   if (error || !data) return <ErrorBox message={error ?? "No data"} onRetry={reload} />;
   const k = data.kpis, g = data.goal;
@@ -43,7 +45,16 @@ export default function DashboardPage() {
     if (p.taskId) { await api.update("tasks", p.taskId, { completedAt: done ? new Date().toISOString() : null }); toast(done ? "Task completed" : "Reopened"); }
     else if (p.kind === "call") { await api.update("calls", p.id.replace("call-", ""), { status: "completed", completedAt: new Date().toISOString() }); toast("Call logged"); }
     else if (p.kind === "milestone") { await api.update("milestones", p.id.replace("ms-", ""), { completedAt: new Date().toISOString() }); toast("Milestone complete"); }
+    else if (p.kind === "vault") window.open(p.href, "_self");
     else toast("Open the item to work it — this one isn't a checkbox task", "err");
+  }
+  async function askClaude() {
+    setBriefBusy(true);
+    const r = await api.post<{ text: string | null; configured: boolean }>("/api/claude/briefing");
+    setBriefBusy(false);
+    if (!r.ok) { toast(r.message ?? "Claude failed", "err"); return; }
+    if (!r.data.configured) { toast("Add ANTHROPIC_API_KEY in .env to let Claude write the briefing (see Integrations)", "err"); return; }
+    setBriefing(r.data.text);
   }
 
   return (
@@ -70,14 +81,15 @@ export default function DashboardPage() {
 
       {/* Row 2 — priorities · schedule · calls */}
       <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-[1.25fr_0.8fr_1.4fr]">
-        <Card title={<h2 className="card-title flex items-center gap-2">Today’s Priorities <span className="pill bg-crit text-white normal-case tracking-normal">{prios.length}</span></h2>} action={<Link href="/tasks" className="card-link">View all tasks →</Link>}>
+        <Card title={<h2 className="card-title flex items-center gap-2">Today’s Priorities <span className="pill bg-crit text-white normal-case tracking-normal">{prios.length}</span></h2>} action={<span className="ml-auto flex items-center gap-3"><button className="card-link !ml-0 text-gold-ink" onClick={askClaude} disabled={briefBusy}>{briefBusy ? "Claude is writing…" : briefing ? "Refresh Claude briefing" : "✦ Ask Claude for a game plan"}</button><Link href="/tasks" className="card-link !ml-0">View all tasks →</Link></span>}>
+          {briefing && <div className="mb-3 rounded-lg bg-gold-soft/70 p-3 text-[13px] whitespace-pre-wrap leading-relaxed"><div className="kicker text-gold-ink mb-1">Claude’s game plan</div>{briefing}</div>}
           {prios.length === 0 && <Empty title="Nothing urgent" body="No overdue tasks, deadlines or neglected hot buyers. Enjoy it — or add a task." action={<button className="btn btn-sm" onClick={() => quickAdd("tasks")}>+ Task</button>} />}
           <ul className="divide-y divide-line-2">
             {prios.map((p) => (
               <li key={p.id} draggable onDragStart={() => setDrag(p.id)} onDragOver={(e) => e.preventDefault()} onDrop={() => { if (!drag || drag === p.id) return; const ids = prios.map((x) => x.id); const from = ids.indexOf(drag), to = ids.indexOf(p.id); ids.splice(from, 1); ids.splice(to, 0, drag); setOrder(ids); setDrag(null); }} className={`flex items-center gap-3 py-2.5 ${drag === p.id ? "dragging" : ""}`}>
                 <button className="check" aria-label={`Complete ${p.title}`} onClick={() => completePriority(p, true)} />
                 <div className="flex-1 min-w-0">
-                  <Link href={p.href} className="text-[13.5px] font-medium hover:underline truncate block">{p.title}</Link>
+                  {p.kind === "vault" ? <a href={p.href} className="text-[13.5px] font-medium hover:underline truncate block">{p.title}</a> : <Link href={p.href} className="text-[13.5px] font-medium hover:underline truncate block">{p.title}</Link>}
                   {p.subtitle && <div className="text-[12px] text-ink-3 truncate">{p.subtitle}</div>}
                 </div>
                 <Badge tone={p.priority}>{p.priority}</Badge>

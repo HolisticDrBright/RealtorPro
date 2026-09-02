@@ -8,6 +8,7 @@ import { buildPriorities } from "@/lib/priorities";
 import { matchAll, type BuyerCriteria, type Candidate } from "@/lib/match";
 import { buildFollowUps } from "@/lib/followups";
 import { loadContext } from "./context";
+import { indexVaultIfChanged, vaultTasks } from "./obsidian";
 
 /** Everything the home screen needs in one pass. */
 export function loadDashboard(now = new Date()) {
@@ -58,8 +59,10 @@ export function loadDashboard(now = new Date()) {
   const offers = db.select().from(s.offers).all();
   const opportunities = db.select().from(s.opportunities).where(ne(s.opportunities.status, "dead")).all();
 
+  let vTasks: { text: string; note: string; uri: string }[] = [];
+  try { indexVaultIfChanged(); vTasks = vaultTasks(); } catch { /* vault optional */ }
   const priorities = buildPriorities({
-    now, names: ctx.names, addresses: ctx.addresses,
+    now, names: ctx.names, addresses: ctx.addresses, vaultTasks: vTasks,
     tasks, calls: db.select().from(s.calls).where(eq(s.calls.status, "scheduled")).all(),
     buyers: buyersAll.map((b) => ({ id: b.id, contactId: b.contactId, temperature: b.temperature, lastContactAt: ctx.contact(b.contactId)?.lastContactAt ?? null, timeline: b.timeline })),
     listings: listingsAll, milestones: milestonesOpen, offers, appointments: appts,

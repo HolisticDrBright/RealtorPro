@@ -306,4 +306,27 @@ CREATE TABLE `transactions` (
 	FOREIGN KEY (`contact_id`) REFERENCES `contacts`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-CREATE INDEX `tx_status_idx` ON `transactions` (`status`);
+CREATE INDEX `tx_status_idx` ON `transactions` (`status`);--> statement-breakpoint
+CREATE TABLE `vault_notes` (
+	`id` text PRIMARY KEY NOT NULL,
+	`path` text NOT NULL,
+	`title` text NOT NULL,
+	`tags` text DEFAULT '[]',
+	`links` text DEFAULT '[]',
+	`frontmatter` text DEFAULT '{}',
+	`excerpt` text,
+	`word_count` integer DEFAULT 0 NOT NULL,
+	`contact_id` text,
+	`property_id` text,
+	`link_basis` text,
+	`record_type` text,
+	`sha256` text NOT NULL,
+	`modified_at` text,
+	`indexed_at` text DEFAULT (datetime('now')) NOT NULL,
+	FOREIGN KEY (`contact_id`) REFERENCES `contacts`(`id`) ON UPDATE no action ON DELETE set null,
+	FOREIGN KEY (`property_id`) REFERENCES `properties`(`id`) ON UPDATE no action ON DELETE set null
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `vault_notes_path_unique` ON `vault_notes` (`path`);--> statement-breakpoint
+CREATE INDEX `vault_contact_idx` ON `vault_notes` (`contact_id`);--> statement-breakpoint
+CREATE INDEX `vault_property_idx` ON `vault_notes` (`property_id`);

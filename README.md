@@ -82,12 +82,52 @@ pipeline stage) ← `buyers`, `sellers` (profiles) · `properties` ← `listings
 `settings` (agent, goal, default commission/split). Income is derived from
 transactions: gross = price × %, net = gross − referral − split − expenses.
 
+### Claude and Obsidian (connected)
+
+Open **Integrations** in the sidebar. Both are optional and off until you add a
+line to `.env` and restart.
+
+**Claude** — `ANTHROPIC_API_KEY=` (from console.anthropic.com).
+- Dashboard → *✦ Ask Claude for a game plan* writes the morning briefing from
+  the facts on the page (escrow deadlines, calls, hot buyers, goal).
+- Integrations → *Extract records with Claude*: paste an email thread, meeting
+  notes, a lead sheet or a spreadsheet dump. Claude returns contacts, buyers,
+  sellers, properties, listings, escrows, tasks and notes; you review the list
+  and press Import. Records are upserted by email / phone / name / address, so
+  re-importing never duplicates a person.
+
+**Obsidian** — `OBSIDIAN_VAULT_DIR=` (path to your vault folder).
+- Notes are read in place and indexed automatically whenever a file changes.
+  Any note whose frontmatter, title or `[[wikilink]]` names a contact or
+  address appears on that contact's profile and in Notes; `- [ ]` checkboxes in
+  today's daily note or in notes tagged `#command-center` show in Today's
+  Priorities.
+- Notes with `type: contact | buyer | seller | property | listing | transaction
+  | task | opportunity` in their frontmatter are importable: Integrations →
+  *Import records from vault* → review → Import. Field reference is on that
+  page.
+- The app only ever writes into the `Command Center/` folder of your vault.
+
+**Claude Cowork / Claude Desktop / Claude Code writing to the dashboard.**
+The app ships an MCP server (`scripts/mcp-server.ts`) that exposes
+`get_dashboard`, `search`, `list_records`, `get_record`, `create_record`,
+`update_record`, `delete_record`, `import_records`, `add_tasks` and
+`log_activity`. With the app running, `npm run mcp:config` prints the config
+block; paste it into Claude Desktop / Cowork → Settings → Developer → Edit
+Config (or use `claude mcp add`). Then a Claude agent that has searched your
+MLS or read your inbox can call `import_records` / `add_tasks` and the
+dashboard updates on its next refresh. Writes go through the same validation
+and business rules as the UI. The app never scrapes listing sites itself; the
+agent brings the data it is authorized to use.
+
 ### Integration points (not yet connected)
 
 - **Google Calendar / Gmail** → sync into `appointments` / activity timeline
-  via `POST /api/appointments` and `/api/activities` (add `src/services/google.ts`).
-- **MLS / real-estate APIs** → upsert `properties` + `listings`.
-- **Contact sync** → upsert `contacts` (match on email/phone), never duplicate.
+  via `POST /api/appointments` and `/api/activities` (add `src/services/google.ts`),
+  or let a Claude agent with your Gmail connector call `add_tasks` over MCP.
+- **MLS / real-estate APIs** → `POST /api/import/apply` with `listings` +
+  `properties` (same bundle the MCP `import_records` tool uses).
+- **Contact sync** → the same bundle's `contacts` (matched on email/phone/name).
 - **SMS / calling** → log `calls`/`activities`; the UI already links `tel:`/`sms:`.
 - **Commission accounting / documents** → `transactions.notes` today; add a
   `documents` table alongside `milestones`.

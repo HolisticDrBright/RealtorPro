@@ -15,9 +15,13 @@
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
     "db:reset": "tsx src/db/reset.ts",
-    "setup": "npm run db:migrate && npm run db:seed"
+    "setup": "npm run db:migrate && npm run db:seed",
+    "mcp": "tsx scripts/mcp-server.ts",
+    "mcp:config": "tsx scripts/mcp-server.ts --config"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.123.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "better-sqlite3": "^12.4.1",
     "drizzle-orm": "0.38.4",
     "next": "^15.5.21",

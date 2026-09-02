@@ -31,7 +31,7 @@ export const NAV: { href: string; label: string; icon: ReactNode; key?: string }
   { href: "/notes", label: "Notes", icon: <I d="M5 3h10l4 4v14H5zM15 3v4h4M8 12h8M8 16h6" /> },
 ];
 const MORE = [
-  { href: "/offers", label: "Offers" }, { href: "/opportunities", label: "Opportunities" }, { href: "/sphere", label: "Stay in Touch" }, { href: "/followups", label: "Needs Follow-Up" },
+  { href: "/offers", label: "Offers" }, { href: "/opportunities", label: "Opportunities" }, { href: "/sphere", label: "Stay in Touch" }, { href: "/followups", label: "Needs Follow-Up" }, { href: "/integrations", label: "Integrations" },
 ];
 function I({ d }: { d: string }) { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>; }
 

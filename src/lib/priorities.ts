@@ -8,7 +8,7 @@ import { daysSince, daysUntil, nextAnniversary } from "./dates";
 export type Priority = "critical" | "high" | "medium" | "low";
 export interface PriorityItem {
   id: string;
-  kind: "task" | "call" | "buyer" | "listing" | "milestone" | "offer" | "appointment" | "lead" | "birthday" | "followup";
+  kind: "task" | "call" | "buyer" | "listing" | "milestone" | "offer" | "appointment" | "lead" | "birthday" | "followup" | "vault";
   title: string;
   subtitle: string | null;
   priority: Priority;
@@ -34,12 +34,14 @@ export interface PriorityInput {
   contacts: { id: string; type: string; stage: string; lastContactAt: string | null; nextFollowUpAt: string | null; birthday: string | null; createdAt: string }[];
   names: (contactId: string | null) => string | null;
   addresses: (propertyId: string | null) => string | null;
+  /** Open checkbox tasks from the Obsidian vault (today's daily note, #command-center notes). */
+  vaultTasks?: { text: string; note: string; uri: string }[];
 }
 
 const P: Record<Priority, number> = { critical: 400, high: 300, medium: 200, low: 100 };
 const asP = (s: string): Priority => (["critical", "high", "medium", "low"].includes(s) ? (s as Priority) : "medium");
 
-export function buildPriorities(input: PriorityInput, limit = 12): PriorityItem[] {
+export function buildPriorities(input: PriorityInput, limit = 14): PriorityItem[] {
   const { now, names, addresses } = input;
   const out: PriorityItem[] = [];
   const contactById = new Map(input.contacts.map((c) => [c.id, c]));
@@ -112,6 +114,9 @@ export function buildPriorities(input: PriorityInput, limit = 12): PriorityItem[
       const d = daysUntil(nextAnniversary(c.birthday, now), now);
       if (d <= 1) out.push({ id: `bday-${c.id}`, kind: "birthday", title: `${names(c.id)}'s birthday ${d === 0 ? "is today" : "is tomorrow"}`, subtitle: "Send a note or a small gift", priority: "medium", dueDate: nextAnniversary(c.birthday, now), dueTime: null, contactId: c.id, propertyId: null, transactionId: null, href: `/contacts/${c.id}`, taskId: null, score: 240 });
     }
+  }
+  for (const [i, v] of (input.vaultTasks ?? []).entries()) {
+    out.push({ id: `vault-${i}-${v.text.slice(0, 24)}`, kind: "vault", title: v.text, subtitle: `Obsidian · ${v.note}`, priority: "medium", dueDate: null, dueTime: null, contactId: null, propertyId: null, transactionId: null, href: v.uri, taskId: null, score: 405 - i });
   }
   void contactById;
   return out.sort((a, b) => b.score - a.score || (a.dueTime ?? "99").localeCompare(b.dueTime ?? "99")).slice(0, limit);

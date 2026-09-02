@@ -330,3 +330,26 @@ export const notifications = sqliteTable("notifications", {
   readAt: text("read_at"),
   createdAt: createdAt(),
 });
+
+/** Indexed Obsidian vault notes (read in place; linked to contacts/properties explicitly). */
+export const vaultNotes = sqliteTable(
+  "vault_notes",
+  {
+    id: id(),
+    path: text("path").notNull().unique(),
+    title: text("title").notNull(),
+    tags: json<string[]>("tags").default([]),
+    links: json<string[]>("links").default([]),
+    frontmatter: json<Record<string, unknown>>("frontmatter").default({}),
+    excerpt: text("excerpt"),
+    wordCount: integer("word_count").notNull().default(0),
+    contactId: text("contact_id").references(() => contacts.id, { onDelete: "set null" }),
+    propertyId: text("property_id").references(() => properties.id, { onDelete: "set null" }),
+    linkBasis: text("link_basis"),
+    recordType: text("record_type"), // frontmatter `type:` when it names an importable record
+    sha256: text("sha256").notNull(),
+    modifiedAt: text("modified_at"),
+    indexedAt: text("indexed_at").notNull().default(sql`(datetime('now'))`),
+  },
+  (t) => ({ contactIdx: index("vault_contact_idx").on(t.contactId), propIdx: index("vault_property_idx").on(t.propertyId) }),
+);
