@@ -51,13 +51,13 @@ export function RentRollStudioScreen() {
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: 24, alignItems: "start" }}>
         <div className="field">
           <label htmlFor="rr-csv">Paste a CSV rent roll (or drop a file into an XLSX-exported CSV)</label>
-          <textarea id="rr-csv" className="input" style={{ minHeight: 150, fontFamily: "monospace", fontSize: 12 }} value={csv} onChange={(e) => setCsv(e.target.value)} />
+          <textarea id="rr-csv" className="input" style={{ minHeight: 150, fontFamily: "monospace", fontSize: 13 }} value={csv} onChange={(e) => setCsv(e.target.value)} />
         </div>
         <div className="card elev-sm" style={{ padding: 16, gap: 10 }}>
           <div className="card-kicker">Privacy</div>
-          <label style={{ display: "flex", gap: 8, fontSize: 13, alignItems: "center" }}><input type="checkbox" checked={localOnly} onChange={(e) => setLocalOnly(e.target.checked)} /> Local-only processing</label>
-          <label style={{ display: "flex", gap: 8, fontSize: 13, alignItems: "center" }}><input type="checkbox" checked={redact} onChange={(e) => setRedact(e.target.checked)} /> Redact tenant PII on export</label>
-          <div className="text-muted" style={{ fontSize: 11.5 }}>AgentOS warns before sending rent-roll data to any external AI provider. This import is processed locally.</div>
+          <label style={{ display: "flex", gap: 8, fontSize: 14, alignItems: "center" }}><input type="checkbox" checked={localOnly} onChange={(e) => setLocalOnly(e.target.checked)} /> Local-only processing</label>
+          <label style={{ display: "flex", gap: 8, fontSize: 14, alignItems: "center" }}><input type="checkbox" checked={redact} onChange={(e) => setRedact(e.target.checked)} /> Redact tenant PII on export</label>
+          <div className="text-muted" style={{ fontSize: 12.5 }}>AgentOS warns before sending rent-roll data to any external AI provider. This import is processed locally.</div>
           <button className="btn btn-primary btn-block" onClick={runImport} disabled={busy}>Validate &amp; analyze</button>
         </div>
       </div>
@@ -70,7 +70,7 @@ export function RentRollStudioScreen() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px,1fr))", gap: 16 }}>
             {[{ l: "Units", v: String(result.summary.total) }, { l: "Occupied", v: String(result.summary.occupied) }, { l: "Vacant", v: String(result.summary.vacant) }, ...result.derived.map((d) => ({ l: d.metric, v: d.display }))].map((s) => (
               <div key={s.l} style={{ borderTop: "2px solid var(--color-divider)", paddingTop: 10 }}>
-                <div className="text-muted" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>{s.l}</div>
+                <div className="text-muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.06em" }}>{s.l}</div>
                 <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 24, margin: "4px 0 2px" }}>{s.v}</div>
               </div>
             ))}
@@ -82,24 +82,24 @@ export function RentRollStudioScreen() {
                 <h6 style={{ margin: 0 }}>Validation findings ({result.findings.length})</h6>
                 <button className="btn btn-secondary" style={{ marginLeft: "auto" }} onClick={doExport}>Export Excel workbook</button>
               </div>
-              {result.findings.length === 0 && <div className="text-muted" style={{ fontSize: 13, padding: "12px 0" }}>No validation issues found.</div>}
+              {result.findings.length === 0 && <div className="text-muted" style={{ fontSize: 14, padding: "12px 0" }}>No validation issues found.</div>}
               {result.findings.map((f, i) => (
                 <div key={i} style={{ display: "flex", gap: 10, padding: "10px 0", borderBottom: "1px solid var(--color-divider)" }}>
                   <SeverityBadge severity={f.severity} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>{f.code.replace(/_/g, " ")} {f.unitRef && <span className="text-muted">· {f.unitRef}</span>}</div>
-                    <div className="text-muted" style={{ fontSize: 12.5 }}>{f.message}</div>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{f.code.replace(/_/g, " ")} {f.unitRef && <span className="text-muted">· {f.unitRef}</span>}</div>
+                    <div className="text-muted" style={{ fontSize: 13.5 }}>{f.message}</div>
                   </div>
                 </div>
               ))}
             </div>
             <div>
               <h6 style={{ margin: 0, borderBottom: "2px solid var(--color-divider)", paddingBottom: 8 }}>Derived figures (formula + source stored)</h6>
-              <table className="table" style={{ fontSize: 12.5 }}>
+              <table className="table" style={{ fontSize: 13.5 }}>
                 <thead><tr><th scope="col">Metric</th><th scope="col">Value</th><th scope="col">Status</th></tr></thead>
                 <tbody>{result.derived.map((d) => <tr key={d.metric}><td style={{ fontWeight: 600 }}>{d.metric}</td><td>{d.display}</td><td><StatusBadge status={d.status} /></td></tr>)}</tbody>
               </table>
-              <div className="text-muted" style={{ fontSize: 11.5, marginTop: 8 }}>Pending figures show “—” until inputs exist. The approved rent roll is available to OM Studio as a source-linked section.</div>
+              <div className="text-muted" style={{ fontSize: 12.5, marginTop: 8 }}>Pending figures show “—” until inputs exist. The approved rent roll is available to OM Studio as a source-linked section.</div>
             </div>
           </div>
         </>

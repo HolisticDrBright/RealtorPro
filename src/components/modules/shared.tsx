@@ -47,7 +47,7 @@ export function errText(data: unknown, fallback = "Something went wrong."): stri
 
 export function Loading({ label = "Loading…" }: { label?: string }) {
   return (
-    <div role="status" style={{ display: "flex", alignItems: "center", gap: 10, padding: "24px 0", fontSize: 13 }}>
+    <div role="status" style={{ display: "flex", alignItems: "center", gap: 10, padding: "24px 0", fontSize: 14 }}>
       <span style={{ width: 14, height: 14, border: "2px solid var(--color-divider)", borderTopColor: "var(--color-accent)", borderRadius: "50%", animation: "spin 0.8s linear infinite", display: "inline-block" }} />
       {label}
     </div>
@@ -56,7 +56,7 @@ export function Loading({ label = "Loading…" }: { label?: string }) {
 
 export function ErrorBox({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div role="alert" style={{ background: "var(--color-accent-100)", color: "var(--color-accent-800)", padding: "12px 16px", fontSize: 13, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+    <div role="alert" style={{ background: "var(--color-accent-100)", color: "var(--color-accent-800)", padding: "12px 16px", fontSize: 14, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
       <strong>Couldn’t complete that.</strong> {message}
       {onRetry && (
         <button className="btn btn-secondary" style={{ marginLeft: "auto" }} onClick={onRetry}>
@@ -72,7 +72,7 @@ export function Empty({ kicker, title, body, action }: { kicker: string; title: 
     <div style={{ border: "2px dashed var(--color-divider)", padding: "34px 28px", maxWidth: 640 }}>
       <div className="card-kicker" style={{ marginBottom: 6 }}>{kicker}</div>
       <h5 style={{ margin: "0 0 6px" }}>{title}</h5>
-      <p className="text-muted" style={{ fontSize: 13, margin: "0 0 12px" }}>{body}</p>
+      <p className="text-muted" style={{ fontSize: 14, margin: "0 0 12px" }}>{body}</p>
       {action}
     </div>
   );
@@ -98,7 +98,7 @@ export function ScreenHeader({ title, sub, action }: { title: string; sub?: stri
     <div style={{ display: "flex", alignItems: "flex-end", gap: 12, flexWrap: "wrap", borderBottom: "2px solid var(--color-divider)", paddingBottom: 10 }}>
       <div style={{ flex: 1, minWidth: 200 }}>
         <h3 style={{ margin: 0, fontSize: 22 }}>{title}</h3>
-        {sub && <div className="text-muted" style={{ fontSize: 12.5, marginTop: 4 }}>{sub}</div>}
+        {sub && <div className="text-muted" style={{ fontSize: 13.5, marginTop: 4 }}>{sub}</div>}
       </div>
       {action}
     </div>

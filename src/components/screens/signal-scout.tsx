@@ -43,7 +43,7 @@ export function SignalScoutScreen() {
 
       {loading && <Loading />}
       {error && <ErrorBox message={error} onRetry={reload} />}
-      {data && signals.length === 0 && <div className="text-muted" style={{ fontSize: 13, padding: "16px 0" }}>No signals in this view. Refresh the queue or upload an authorized MLS status export.</div>}
+      {data && signals.length === 0 && <div className="text-muted" style={{ fontSize: 14, padding: "16px 0" }}>No signals in this view. Refresh the queue or upload an authorized MLS status export.</div>}
 
       {signals.map((s) => (
         <div key={s.id} style={{ border: "1px solid var(--color-divider)", padding: "14px 16px", display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
@@ -54,12 +54,12 @@ export function SignalScoutScreen() {
           <div style={{ flex: 1, minWidth: 240 }}>
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <span className="tag tag-accent">{s.type.replace(/_/g, " ")}</span>
-              <strong style={{ fontSize: 14 }}>{s.relatedLabel ?? "Opportunity"}</strong>
+              <strong style={{ fontSize: 15 }}>{s.relatedLabel ?? "Opportunity"}</strong>
               <StatusBadge status={s.status} />
             </div>
-            <div className="text-muted" style={{ fontSize: 13, marginTop: 4 }}>{s.reason}</div>
-            <div className="text-muted" style={{ fontSize: 11.5, marginTop: 4 }}>Source: {s.sourceKind}{s.sourceRef ? ` · ${s.sourceRef}` : ""}{s.sourceDate ? ` · ${s.sourceDate}` : ""} · Why surfaced: {s.confidenceBasis}</div>
-            {s.suggestedAction && <div style={{ fontSize: 12.5, marginTop: 6 }}><strong>Suggested:</strong> {s.suggestedAction}</div>}
+            <div className="text-muted" style={{ fontSize: 14, marginTop: 4 }}>{s.reason}</div>
+            <div className="text-muted" style={{ fontSize: 12.5, marginTop: 4 }}>Source: {s.sourceKind}{s.sourceRef ? ` · ${s.sourceRef}` : ""}{s.sourceDate ? ` · ${s.sourceDate}` : ""} · Why surfaced: {s.confidenceBasis}</div>
+            {s.suggestedAction && <div style={{ fontSize: 13.5, marginTop: 6 }}><strong>Suggested:</strong> {s.suggestedAction}</div>}
             <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
               <button className="btn btn-secondary" onClick={() => act(s.id, "pursue")}>Pursue</button>
               <button className="btn btn-secondary" onClick={() => act(s.id, "create_task", { taskTitle: `Follow up: ${s.relatedLabel ?? s.type}` })}>Create FUB task</button>
@@ -70,7 +70,7 @@ export function SignalScoutScreen() {
           </div>
         </div>
       ))}
-      <div className="text-muted" style={{ fontSize: 11.5 }}>Outreach is draft-only — AgentOS never auto-sends email/SMS/calls or creates leads. Every score, action, and FUB write is audited.</div>
+      <div className="text-muted" style={{ fontSize: 12.5 }}>Outreach is draft-only — AgentOS never auto-sends email/SMS/calls or creates leads. Every score, action, and FUB write is audited.</div>
     </section>
   );
 }

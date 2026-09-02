@@ -36,7 +36,7 @@ export function SettingsScreen() {
 
       <div className="card elev-sm" style={{ padding: 18, gap: 10 }}>
         <div className="card-kicker">Local data</div>
-        <p style={{ fontSize: 13, margin: 0 }} className="text-muted">
+        <p style={{ fontSize: 14, margin: 0 }} className="text-muted">
           Everything AgentOS stores — criteria, imports, drafts, the disclosure log — lives on this machine. 84 MB used. Follow Up Boss remains the system of record for client data.
         </p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -47,13 +47,13 @@ export function SettingsScreen() {
 
       <div className="card elev-sm" style={{ padding: 18, gap: 8 }}>
         <div className="card-kicker">Appearance</div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 14 }}>
           <span>Theme</span>
           <button className="btn btn-secondary" onClick={app.toggleTheme}>
             {app.theme === "light" ? "Switch to dark" : "Switch to light"}
           </button>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, marginTop: 6 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 14, marginTop: 6 }}>
           <span>Interface</span>
           <button className="btn btn-secondary" onClick={app.toggleUi}>
             {app.ui === "glass" ? "Switch to Modernist (flat)" : "Switch to Apple glass"}
@@ -79,7 +79,7 @@ function Field({ id, label, value }: { id: string; label: string; value: string 
 
 function Row({ k, v, last }: { k: string; v: string; last?: boolean }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "5px 0", borderBottom: last ? "none" : "1px solid var(--color-divider)" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, padding: "5px 0", borderBottom: last ? "none" : "1px solid var(--color-divider)" }}>
       <span>{k}</span>
       <strong>{v}</strong>
     </div>

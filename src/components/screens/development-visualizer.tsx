@@ -52,14 +52,14 @@ function VizList({ onOpen, say }: { onOpen: (id: string) => void; say: (m: strin
 
       {loading && <Loading />}
       {error && <ErrorBox message={error} onRetry={reload} />}
-      {data && data.projects.length === 0 && <div className="text-muted" style={{ fontSize: 13 }}>No visualization projects yet.</div>}
+      {data && data.projects.length === 0 && <div className="text-muted" style={{ fontSize: 14 }}>No visualization projects yet.</div>}
       {data && data.projects.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px,1fr))", gap: 18 }}>
           {data.projects.map((p) => (
             <div key={p.id} style={{ border: "2px solid var(--color-divider)", padding: 14 }}>
               <div className="grayscale" style={{ aspectRatio: "16 / 9", marginBottom: 10 }}><ImageSlot label="Authorized aerial / site plan" ratio="16 / 9" /></div>
-              <strong style={{ fontSize: 14 }}>{p.name}</strong>
-              <div className="text-muted" style={{ fontSize: 12, margin: "4px 0 10px" }}>{TYPES.find((t) => t.id === p.visualizationType)?.label} · {p.status}</div>
+              <strong style={{ fontSize: 15 }}>{p.name}</strong>
+              <div className="text-muted" style={{ fontSize: 13, margin: "4px 0 10px" }}>{TYPES.find((t) => t.id === p.visualizationType)?.label} · {p.status}</div>
               <button className="btn btn-secondary" onClick={() => onOpen(p.id)}>Open</button>
             </div>
           ))}
@@ -118,21 +118,21 @@ function VizProject({ projectId, onBack, say }: { projectId: string; onBack: () 
     <section style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 1100 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, borderBottom: "2px solid var(--color-divider)", paddingBottom: 10, flexWrap: "wrap" }}>
         <button className="btn btn-ghost" onClick={onBack}>← Back</button>
-        <strong style={{ fontSize: 15 }}>{data.project.name}</strong>
+        <strong style={{ fontSize: 16 }}>{data.project.name}</strong>
         <span className="tag tag-neutral">{typeLabel}</span>
       </div>
 
       {/* Source & rights review */}
       <div>
         <h6 style={{ margin: "0 0 8px", borderBottom: "2px solid var(--color-divider)", paddingBottom: 8 }}>Source &amp; rights review</h6>
-        <div className="text-muted" style={{ fontSize: 12, marginBottom: 10 }}>Only authorized, licensed, or brokerage/MLS-approved media may be used. A boundary overlay requires a verified boundary source.</div>
+        <div className="text-muted" style={{ fontSize: 13, marginBottom: 10 }}>Only authorized, licensed, or brokerage/MLS-approved media may be used. A boundary overlay requires a verified boundary source.</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
           <button className="btn btn-secondary" onClick={() => addSource("aerial", "none")}>+ Authorized aerial</button>
           <button className="btn btn-secondary" onClick={() => addSource("survey", "survey")}>+ Survey (verifies boundary)</button>
           <button className="btn btn-secondary" onClick={() => addSource("geojson", "geojson")}>+ Approved GeoJSON</button>
         </div>
         {data.sources.map((s) => (
-          <div key={s.id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 0", borderBottom: "1px solid var(--color-divider)", fontSize: 13 }}>
+          <div key={s.id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 0", borderBottom: "1px solid var(--color-divider)", fontSize: 14 }}>
             <span className="tag tag-neutral">{s.kind}</span>
             <span style={{ flex: 1 }}>{s.label}</span>
             <span className="tag tag-neutral" style={{ fontSize: 10 }}>Rights confirmed</span>
@@ -158,11 +158,11 @@ function VizProject({ projectId, onBack, say }: { projectId: string; onBack: () 
           <Sel label="Disclosure mode" val={board.disclosureMode} set={(v) => setBoard({ ...board, disclosureMode: v })} opts={["brokerage", "enhanced", "custom"]} />
         </div>
         {boundaryBlocked && (
-          <div role="alert" style={{ background: "var(--color-accent-100)", color: "var(--color-accent-800)", padding: "10px 14px", fontSize: 12.5 }}>
+          <div role="alert" style={{ background: "var(--color-accent-100)", color: "var(--color-accent-800)", padding: "10px 14px", fontSize: 13.5 }}>
             A boundary overlay requires a verified boundary source. Add a survey, site plan, or approved GIS/GeoJSON, or set boundary style to “none”.
           </div>
         )}
-        <div className="text-muted" style={{ fontSize: 11.5 }}>Required disclosure will be attached: “{data.project.visualizationType === "construction_sequence" ? "Conceptual construction visualization — not actual construction progress." : "Conceptual visualization only. Not a survey, site plan, construction schedule, or representation of actual property condition."}”</div>
+        <div className="text-muted" style={{ fontSize: 12.5 }}>Required disclosure will be attached: “{data.project.visualizationType === "construction_sequence" ? "Conceptual construction visualization — not actual construction progress." : "Conceptual visualization only. Not a survey, site plan, construction schedule, or representation of actual property condition."}”</div>
         <button className="btn btn-secondary" style={{ alignSelf: "flex-start" }} onClick={saveBoard} disabled={busy || boundaryBlocked}>Save visual direction</button>
       </div>
 
@@ -176,9 +176,9 @@ function VizProject({ projectId, onBack, say }: { projectId: string; onBack: () 
             <button className="btn btn-secondary" onClick={() => generate("overlay")} disabled={busy || !data.boundaryAvailable}>Generate overlay</button>
           </div>
         </div>
-        {data.jobs.length === 0 && <div className="text-muted" style={{ fontSize: 13, padding: "12px 0" }}>No jobs yet. Generation runs on the local mock provider — approval + disclosure required before export.</div>}
+        {data.jobs.length === 0 && <div className="text-muted" style={{ fontSize: 14, padding: "12px 0" }}>No jobs yet. Generation runs on the local mock provider — approval + disclosure required before export.</div>}
         {data.jobs.map((j) => (
-          <div key={j.id} style={{ display: "flex", gap: 12, alignItems: "center", padding: "10px 0", borderBottom: "1px solid var(--color-divider)", fontSize: 13 }}>
+          <div key={j.id} style={{ display: "flex", gap: 12, alignItems: "center", padding: "10px 0", borderBottom: "1px solid var(--color-divider)", fontSize: 14 }}>
             <span className="tag tag-neutral">{j.type}</span>
             <StatusBadge status={j.status} />
             <span className="text-muted" style={{ flex: 1 }}>est. ${(j.costEstimateUsd ?? 0).toFixed(2)}</span>

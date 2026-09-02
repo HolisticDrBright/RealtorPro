@@ -46,7 +46,7 @@ export function ListingStudioScreen() {
         <div style={{ display: "flex", flexDirection: "column", gap: 20, minWidth: 0 }}>
           <div>
             <h6 style={{ margin: 0, borderBottom: "2px solid var(--color-divider)", paddingBottom: 8 }}>Intake — facts from MLS CSV &amp; disclosures</h6>
-            <table className="table" style={{ fontSize: 13 }}>
+            <table className="table" style={{ fontSize: 14 }}>
               <thead>
                 <tr>
                   <th scope="col">Field</th>
@@ -77,7 +77,7 @@ export function ListingStudioScreen() {
                 </figure>
               ))}
             </div>
-            <div className="text-muted" style={{ fontSize: 11.5, marginTop: 8 }}>
+            <div className="text-muted" style={{ fontSize: 12.5, marginTop: 8 }}>
               Only media covered by the listing agreement is used. Any AI alteration is disclosed in the record below and on the asset itself.
             </div>
           </div>
@@ -107,7 +107,7 @@ export function ListingStudioScreen() {
           {app.campaign === "idle" && (
             <>
               <button className="btn btn-primary btn-block" onClick={app.onGenerate}>Generate campaign draft</button>
-              <div className="text-muted" style={{ fontSize: 11.5 }}>
+              <div className="text-muted" style={{ fontSize: 12.5 }}>
                 Drafts only. Copy is built from the intake facts on the left — each claim keeps its source. Nothing publishes without your approval.
               </div>
             </>
@@ -118,7 +118,7 @@ export function ListingStudioScreen() {
                 const done = i < app.genStep;
                 const active = i === app.genStep;
                 return (
-                  <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13, opacity: i > app.genStep ? 0.45 : 1 }}>
+                  <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 14, opacity: i > app.genStep ? 0.45 : 1 }}>
                     {active && <Spinner size={13} />}
                     {done && <span style={{ color: "var(--color-accent-700)", fontWeight: 800, flex: "none" }}>✓</span>}
                     {i > app.genStep && <span style={{ width: 13, flex: "none" }} />}
@@ -152,7 +152,7 @@ export function ListingStudioScreen() {
                     onClick={() => app.setOutTab(id)}
                     style={{
                       font: "inherit",
-                      fontSize: 13,
+                      fontSize: 14,
                       fontWeight: 600,
                       cursor: "pointer",
                       border: "none",
@@ -173,11 +173,11 @@ export function ListingStudioScreen() {
             <div style={{ maxWidth: 760, paddingTop: 16 }}>
               <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>
                 <ApproveChip k="mls" />
-                <span className="text-muted" style={{ fontSize: 12 }}>Every sentence is backed by an intake fact — edit freely, sources update on save.</span>
+                <span className="text-muted" style={{ fontSize: 13 }}>Every sentence is backed by an intake fact — edit freely, sources update on save.</span>
               </div>
               {camp.mls.paras.map((pp, i) => (
                 <div key={i} style={{ borderLeft: "3px solid var(--color-divider)", padding: "2px 0 2px 14px", marginBottom: 14 }}>
-                  <p style={{ fontSize: 14, margin: "0 0 6px" }} contentEditable suppressContentEditableWarning>{pp.text}</p>
+                  <p style={{ fontSize: 15, margin: "0 0 6px" }} contentEditable suppressContentEditableWarning>{pp.text}</p>
                   <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                     {pp.sources.map((src) => (
                       <span key={src} className="tag tag-neutral" style={{ fontSize: 10 }}>{src}</span>
@@ -193,9 +193,9 @@ export function ListingStudioScreen() {
             <div style={{ maxWidth: 820, paddingTop: 16 }}>
               <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>
                 <ApproveChip k="social" />
-                <span className="text-muted" style={{ fontSize: 12 }}>4 posts, Wed–Sat · within the $600 boost cap</span>
+                <span className="text-muted" style={{ fontSize: 13 }}>4 posts, Wed–Sat · within the $600 boost cap</span>
               </div>
-              <table className="table" style={{ fontSize: 13 }}>
+              <table className="table" style={{ fontSize: 14 }}>
                 <thead>
                   <tr><th scope="col">Day</th><th scope="col">Channel</th><th scope="col">Hook</th><th scope="col">Asset</th></tr>
                 </thead>
@@ -219,8 +219,8 @@ export function ListingStudioScreen() {
               <div style={{ width: 300, flex: "none", border: "2px solid var(--color-text)", padding: 14, background: "var(--color-surface)" }} aria-label="Flyer preview">
                 <ImageSlot label="Exterior hero — drop photo" ratio="3 / 2" />
                 <h5 style={{ margin: "10px 0 2px" }}>3117 NE Alameda St</h5>
-                <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, color: "var(--color-accent-700)", fontSize: 15 }}>$1,150,000</div>
-                <div className="text-muted" style={{ fontSize: 11, marginTop: 4 }}>4 bd · 2.5 ba · 2,860 sqft · 1926 Tudor · corner lot</div>
+                <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, color: "var(--color-accent-700)", fontSize: 16 }}>$1,150,000</div>
+                <div className="text-muted" style={{ fontSize: 12, marginTop: 4 }}>4 bd · 2.5 ba · 2,860 sqft · 1926 Tudor · corner lot</div>
                 <div style={{ borderTop: "1px solid var(--color-divider)", marginTop: 10, paddingTop: 8, fontSize: 10.5 }}>
                   Avery Sandoval · PDX Homes · (503) 555-0100
                   <br />
@@ -232,7 +232,7 @@ export function ListingStudioScreen() {
                   <ApproveChip k="flyer" />
                   <span className="tag tag-outline">AI-altered media: virtual twilight on hero</span>
                 </div>
-                <p className="text-muted" style={{ fontSize: 13, maxWidth: 460 }}>
+                <p className="text-muted" style={{ fontSize: 14, maxWidth: 460 }}>
                   Print-ready 8.5×11, front only. Uses the approved exterior hero and the fact line from the MLS CSV. The alteration disclosure prints in the footer — it cannot be removed from this template.
                 </p>
                 <button className="btn btn-primary" onClick={() => app.approve("flyer", "Flyer")} disabled={!!app.approvals.flyer}>Approve flyer</button>
@@ -248,19 +248,19 @@ export function ListingStudioScreen() {
                 <span className="tag tag-outline">AI-altered media: virtual twilight frame</span>
               </div>
               {camp.video.beats.map((vb) => (
-                <div key={vb} style={{ fontSize: 13.5, padding: "7px 0", borderBottom: "1px solid var(--color-divider)" }}>{vb}</div>
+                <div key={vb} style={{ fontSize: 14.5, padding: "7px 0", borderBottom: "1px solid var(--color-divider)" }}>{vb}</div>
               ))}
-              <div className="text-muted" style={{ fontSize: 12, margin: "10px 0 14px" }}>{camp.video.disclosure}</div>
+              <div className="text-muted" style={{ fontSize: 13, margin: "10px 0 14px" }}>{camp.video.disclosure}</div>
               <button className="btn btn-primary" onClick={() => app.approve("video", "Video plan")} disabled={!!app.approvals.video}>Approve video plan</button>
             </div>
           )}
 
           {app.outTab === "disc" && (
             <div style={{ maxWidth: 820, paddingTop: 16 }}>
-              <p className="text-muted" style={{ fontSize: 13, margin: "0 0 10px" }}>
+              <p className="text-muted" style={{ fontSize: 14, margin: "0 0 10px" }}>
                 Permanent record of every asset in this campaign and any AI alteration. Approvals here are logged with a timestamp and kept with the listing file.
               </p>
-              <table className="table" style={{ fontSize: 13 }}>
+              <table className="table" style={{ fontSize: 14 }}>
                 <thead>
                   <tr><th scope="col">Asset</th><th scope="col">Alteration</th><th scope="col">Status</th></tr>
                 </thead>

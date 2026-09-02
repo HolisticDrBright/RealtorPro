@@ -67,7 +67,7 @@ export function AppShell() {
   const lastSync = app.fubSync === "disconnected" ? "—" : app.lastSync;
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", alignItems: "stretch", fontFamily: "var(--font-body)", fontSize: 14, position: "relative", zIndex: 1 }}>
+    <div style={{ display: "flex", minHeight: "100vh", alignItems: "stretch", fontFamily: "var(--font-body)", fontSize: 15, position: "relative", zIndex: 1 }}>
       <aside
         aria-label="Primary navigation"
         className="glass-sidebar"
@@ -84,7 +84,7 @@ export function AppShell() {
       >
         <div style={{ padding: "20px 16px 16px", borderBottom: "2px solid var(--color-divider)" }}>
           <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 19, letterSpacing: "-0.01em" }}>AgentOS</div>
-          <div className="text-muted" style={{ fontSize: 11, marginTop: 2 }}>
+          <div className="text-muted" style={{ fontSize: 12, marginTop: 2 }}>
             Local-first · works with Follow Up Boss
           </div>
         </div>
@@ -120,7 +120,7 @@ export function AppShell() {
         </nav>
         <div style={{ marginTop: "auto", padding: "14px 16px", borderTop: "2px solid var(--color-divider)", display: "flex", flexDirection: "column", gap: 6 }}>
           <span className={fubMeta.chipClass}>FUB · {fubMeta.chip}</span>
-          <span className="text-muted" style={{ fontSize: 11 }}>
+          <span className="text-muted" style={{ fontSize: 12 }}>
             Last sync {lastSync}
           </span>
         </div>
@@ -185,7 +185,7 @@ export function AppShell() {
             background: "var(--color-neutral-900)",
             color: "var(--color-neutral-100)",
             padding: "12px 18px",
-            fontSize: 13,
+            fontSize: 14,
             boxShadow: "var(--shadow-lg)",
             maxWidth: 420,
           }}

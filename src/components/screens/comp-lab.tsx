@@ -44,11 +44,11 @@ export function CompLabScreen() {
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: 24, alignItems: "start" }}>
         <div className="field">
           <label htmlFor="cl-csv">Paste an authorized comps CSV (sales, lease, active, pending)</label>
-          <textarea id="cl-csv" className="input" style={{ minHeight: 130, fontFamily: "monospace", fontSize: 12 }} value={csv} onChange={(e) => setCsv(e.target.value)} />
+          <textarea id="cl-csv" className="input" style={{ minHeight: 130, fontFamily: "monospace", fontSize: 13 }} value={csv} onChange={(e) => setCsv(e.target.value)} />
         </div>
         <div className="card elev-sm" style={{ padding: 16, gap: 10 }}>
           <div className="card-kicker">Transparency</div>
-          <div className="text-muted" style={{ fontSize: 11.5 }}>Scores blend only the objective dimensions with data (distance, recency, size, $/SF, asset match) using your weights. AgentOS never calls a comp “the best” or invents adjustments.</div>
+          <div className="text-muted" style={{ fontSize: 12.5 }}>Scores blend only the objective dimensions with data (distance, recency, size, $/SF, asset match) using your weights. AgentOS never calls a comp “the best” or invents adjustments.</div>
           <button className="btn btn-primary btn-block" onClick={runImport} disabled={busy}>Normalize &amp; score</button>
         </div>
       </div>
@@ -65,7 +65,7 @@ export function CompLabScreen() {
               <button className="btn btn-secondary" onClick={() => doExport("pdf")}>Client PDF</button>
             </div>
           </div>
-          <table className="table" style={{ fontSize: 13 }}>
+          <table className="table" style={{ fontSize: 14 }}>
             <thead><tr><th scope="col">Score</th><th scope="col">Address</th><th scope="col">Date</th><th scope="col">Price</th><th scope="col">$/SF</th><th scope="col">Dist.</th><th scope="col">Source</th><th scope="col">Verification</th></tr></thead>
             <tbody>
               {comps.map((c) => (
@@ -82,7 +82,7 @@ export function CompLabScreen() {
               ))}
             </tbody>
           </table>
-          <div className="text-muted" style={{ fontSize: 11.5, marginTop: 8 }}>Every comp shows its source, missing fields, and verification status. Manual adjustments are labeled agent-entered assumptions, not facts.</div>
+          <div className="text-muted" style={{ fontSize: 12.5, marginTop: 8 }}>Every comp shows its source, missing fields, and verification status. Manual adjustments are labeled agent-entered assumptions, not facts.</div>
         </div>
       )}
     </section>

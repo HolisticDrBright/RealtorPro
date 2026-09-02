@@ -19,7 +19,7 @@ export function PeopleScreen() {
 
   return (
     <section style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 1280 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, border: "2px solid var(--color-divider)", padding: "10px 14px", fontSize: 13, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, border: "2px solid var(--color-divider)", padding: "10px 14px", fontSize: 14, flexWrap: "wrap" }}>
         <span className="tag tag-accent">System of record</span>
         <span>
           <strong>Follow Up Boss holds the truth.</strong> AgentOS reads your FUB contacts, deals and history, and writes back only drafts and tasks for your approval — it never edits or deletes FUB data.
@@ -29,7 +29,7 @@ export function PeopleScreen() {
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.1fr) minmax(0, 1fr)", gap: 28, alignItems: "start" }}>
         <div>
           <h6 style={{ margin: "0 0 4px" }}>Contacts &amp; deals</h6>
-          <table className="table" style={{ fontSize: 13 }}>
+          <table className="table" style={{ fontSize: 14 }}>
             <thead>
               <tr>
                 <th scope="col">Name</th>
@@ -55,10 +55,10 @@ export function PeopleScreen() {
                       >
                         {c.name}
                       </button>
-                      <div className="text-muted" style={{ fontSize: 11 }}>{c.role}</div>
+                      <div className="text-muted" style={{ fontSize: 12 }}>{c.role}</div>
                     </td>
                     <td><span className="tag tag-neutral">{c.stage}</span></td>
-                    <td style={{ fontSize: 12.5 }}>{c.next}</td>
+                    <td style={{ fontSize: 13.5 }}>{c.next}</td>
                     <td><span className={synced ? "tag tag-neutral" : "tag tag-outline"} style={{ fontSize: 10 }}>{c.sync}</span></td>
                   </tr>
                 );
@@ -74,7 +74,7 @@ export function PeopleScreen() {
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 <span className="tag tag-accent">{contact.stage}</span>
                 <span className="tag tag-neutral">{contact.role}</span>
-                <span className="text-muted" style={{ fontSize: 12, alignSelf: "center" }}>{contact.phone}</span>
+                <span className="text-muted" style={{ fontSize: 13, alignSelf: "center" }}>{contact.phone}</span>
               </div>
             </div>
             <button className="btn btn-ghost">Open in Follow Up Boss</button>
@@ -82,13 +82,13 @@ export function PeopleScreen() {
           <div role="feed" aria-label="Contact timeline">
             {timeline.map((e, i) => (
               <div key={i} style={{ display: "grid", gridTemplateColumns: "92px minmax(0, 1fr)", gap: 12, padding: "12px 0", borderBottom: "1px solid var(--color-divider)" }}>
-                <div className="text-muted" style={{ fontSize: 11.5, paddingTop: 2 }}>{e.t}</div>
+                <div className="text-muted" style={{ fontSize: 12.5, paddingTop: 2 }}>{e.t}</div>
                 <div>
                   <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
                     <span className={e.type === "alert" ? "tag tag-accent" : "tag tag-neutral"} style={{ fontSize: 10 }}>{TYPE_LABEL[e.type]}</span>
-                    <strong style={{ fontSize: 13.5 }}>{e.title}</strong>
+                    <strong style={{ fontSize: 14.5 }}>{e.title}</strong>
                   </div>
-                  <div className="text-muted" style={{ fontSize: 13, marginTop: 3 }}>{e.body}</div>
+                  <div className="text-muted" style={{ fontSize: 14, marginTop: 3 }}>{e.body}</div>
                 </div>
               </div>
             ))}

@@ -19,13 +19,13 @@ export function TodayScreen() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 16 }}>
         {t.stats.map((s) => (
           <div key={s.label} style={{ borderTop: "2px solid var(--color-divider)", paddingTop: 10 }}>
-            <div className="text-muted" style={{ fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+            <div className="text-muted" style={{ fontSize: 12, letterSpacing: "0.06em", textTransform: "uppercase" }}>
               {s.label}
             </div>
             <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 30, lineHeight: 1.1, margin: "4px 0 2px" }}>
               {s.value}
             </div>
-            <div className="text-muted" style={{ fontSize: 12 }}>
+            <div className="text-muted" style={{ fontSize: 13 }}>
               {s.sub}
             </div>
           </div>
@@ -36,7 +36,7 @@ export function TodayScreen() {
         <div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 10, borderBottom: "2px solid var(--color-divider)", paddingBottom: 8 }}>
             <h6 style={{ margin: 0 }}>Next best actions</h6>
-            <span className="text-muted" style={{ fontSize: 12 }}>
+            <span className="text-muted" style={{ fontSize: 13 }}>
               {t.actions.length} queued · ordered by deadline and deal impact
             </span>
           </div>
@@ -48,8 +48,8 @@ export function TodayScreen() {
                 style={{ display: "flex", gap: 14, alignItems: "flex-start", padding: "13px 0", borderBottom: "1px solid var(--color-divider)" }}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14.5 }}>{a.title}</div>
-                  <div className="text-muted" style={{ fontSize: 13, marginTop: 2 }}>
+                  <div style={{ fontWeight: 600, fontSize: 15.5 }}>{a.title}</div>
+                  <div className="text-muted" style={{ fontSize: 14, marginTop: 2 }}>
                     {a.detail}
                   </div>
                   <div style={{ display: "flex", gap: 6, marginTop: 7, flexWrap: "wrap" }}>
@@ -75,10 +75,10 @@ export function TodayScreen() {
             <h6 style={{ margin: 0, borderBottom: "2px solid var(--color-divider)", paddingBottom: 8 }}>Today’s appointments</h6>
             {t.appointments.map((ap) => (
               <div key={ap.time + ap.title} style={{ display: "flex", gap: 12, padding: "11px 0", borderBottom: "1px solid var(--color-divider)" }}>
-                <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 13, width: 64, flex: "none", paddingTop: 1 }}>{ap.time}</div>
+                <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 14, width: 64, flex: "none", paddingTop: 1 }}>{ap.time}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13.5 }}>{ap.title}</div>
-                  <div className="text-muted" style={{ fontSize: 12 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14.5 }}>{ap.title}</div>
+                  <div className="text-muted" style={{ fontSize: 13 }}>
                     {ap.who} · {ap.where}
                   </div>
                 </div>
@@ -93,12 +93,12 @@ export function TodayScreen() {
               <div key={r.deal} style={{ padding: "11px 0", borderBottom: "1px solid var(--color-divider)" }}>
                 <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
                   <span className={r.severity === "high" ? "tag tag-accent" : "tag tag-neutral"}>{r.severity === "high" ? "Act today" : "Watch"}</span>
-                  <span style={{ fontWeight: 600, fontSize: 13.5 }}>{r.deal}</span>
+                  <span style={{ fontWeight: 600, fontSize: 14.5 }}>{r.deal}</span>
                 </div>
-                <div className="text-muted" style={{ fontSize: 12.5, margin: "5px 0 7px" }}>{r.issue}</div>
+                <div className="text-muted" style={{ fontSize: 13.5, margin: "5px 0 7px" }}>{r.issue}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span className="text-muted" style={{ fontSize: 11 }}>{r.age}</span>
-                  <button className="btn btn-ghost" style={{ fontSize: 13 }} onClick={() => app.goto("people", r.contactId)}>
+                  <span className="text-muted" style={{ fontSize: 12 }}>{r.age}</span>
+                  <button className="btn btn-ghost" style={{ fontSize: 14 }} onClick={() => app.goto("people", r.contactId)}>
                     Open deal
                   </button>
                 </div>

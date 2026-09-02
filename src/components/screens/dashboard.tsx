@@ -88,13 +88,13 @@ export function DashboardScreen() {
           <div className="glass-kicker">{new Date(data.today + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })} · Daily briefing</div>
           <h2 style={{ margin: "6px 0 10px", fontSize: 26, lineHeight: 1.15 }}>{briefing ? briefing.text.split("\n")[0] : data.plan.headline}</h2>
           {briefing ? (
-            <div style={{ whiteSpace: "pre-wrap", fontSize: 13.5, lineHeight: 1.55 }}>{briefing.text.split("\n").slice(1).join("\n").trim()}</div>
+            <div style={{ whiteSpace: "pre-wrap", fontSize: 14.5, lineHeight: 1.55 }}>{briefing.text.split("\n").slice(1).join("\n").trim()}</div>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "6px 20px" }}>
               {data.plan.sections.map((s) => (
                 <div key={s.title}>
                   <div className="glass-kicker" style={{ color: "var(--color-text)", opacity: 0.6, marginBottom: 4 }}>{s.title}</div>
-                  {s.items.map((i, idx) => <div key={idx} style={{ fontSize: 12.5, padding: "2px 0" }}>• {i}</div>)}
+                  {s.items.map((i, idx) => <div key={idx} style={{ fontSize: 13.5, padding: "2px 0" }}>• {i}</div>)}
                 </div>
               ))}
             </div>
@@ -102,7 +102,7 @@ export function DashboardScreen() {
           <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap", alignItems: "center" }}>
             <button className="glass-btn primary" onClick={askClaude} disabled={busy}>{busy ? "Writing…" : data.claudeConfigured ? "Ask Claude for today’s game plan" : "Build game plan"}</button>
             <button className="glass-btn" onClick={() => setShowImport((v) => !v)}>Paste today’s to-do list</button>
-            <span className="text-muted" style={{ fontSize: 11.5 }}>{data.claudeConfigured ? "Claude uses only the facts shown here." : "Set ANTHROPIC_API_KEY to let Claude write it."}</span>
+            <span className="text-muted" style={{ fontSize: 12.5 }}>{data.claudeConfigured ? "Claude uses only the facts shown here." : "Set ANTHROPIC_API_KEY to let Claude write it."}</span>
           </div>
           {showImport && (
             <div style={{ marginTop: 12 }}>
@@ -137,8 +137,8 @@ export function DashboardScreen() {
             <div key={t.id} className="glass-row">
               <button className={`glass-check ${t.done ? "on" : ""}`} onClick={() => toggle(t)} aria-pressed={t.done}>{t.done ? "✓" : ""}</button>
               <div style={{ flex: 1, minWidth: 0, opacity: t.done ? 0.5 : 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 13.5 }}>{t.contactName ?? t.title}</div>
-                <div className="text-muted" style={{ fontSize: 12 }}>{t.contactName ? t.title : ""}{t.notes ? ` · ${t.notes}` : ""}</div>
+                <div style={{ fontWeight: 600, fontSize: 14.5 }}>{t.contactName ?? t.title}</div>
+                <div className="text-muted" style={{ fontSize: 13 }}>{t.contactName ? t.title : ""}{t.notes ? ` · ${t.notes}` : ""}</div>
               </div>
               {t.notes && /\d{3}/.test(t.notes) && <a className="glass-pill accent" href={`tel:${t.notes.replace(/[^\d+]/g, "")}`} style={{ textDecoration: "none" }}>Call</a>}
             </div>
@@ -155,10 +155,10 @@ export function DashboardScreen() {
           {data.todayEvents.length === 0 && <Muted>Nothing on the calendar today.</Muted>}
           {data.todayEvents.map((e) => (
             <div key={e.id} className="glass-row">
-              <div style={{ width: 62, flex: "none", fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 12.5 }}>{time(e.startsAt)}</div>
+              <div style={{ width: 62, flex: "none", fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 13.5 }}>{time(e.startsAt)}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 13.5 }}>{e.title}</div>
-                <div className="text-muted" style={{ fontSize: 12 }}>{[e.contactName, e.location].filter(Boolean).join(" · ")}</div>
+                <div style={{ fontWeight: 600, fontSize: 14.5 }}>{e.title}</div>
+                <div className="text-muted" style={{ fontSize: 13 }}>{[e.contactName, e.location].filter(Boolean).join(" · ")}</div>
               </div>
               <span className="glass-pill">{e.source}</span>
             </div>
@@ -167,7 +167,7 @@ export function DashboardScreen() {
             <>
               <div className="glass-kicker" style={{ marginTop: 12, color: "var(--color-text)", opacity: 0.6 }}>Coming up</div>
               {data.events.filter((e) => e.startsAt.slice(0, 10) !== data.today).slice(0, 5).map((e) => (
-                <div key={e.id} className="glass-row" style={{ fontSize: 12.5 }}><span className="text-muted" style={{ width: 92, flex: "none" }}>{dayLabel(e.startsAt)}</span><span>{e.title}</span></div>
+                <div key={e.id} className="glass-row" style={{ fontSize: 13.5 }}><span className="text-muted" style={{ width: 92, flex: "none" }}>{dayLabel(e.startsAt)}</span><span>{e.title}</span></div>
               ))}
             </>
           )}
@@ -194,8 +194,8 @@ export function DashboardScreen() {
             <div key={t.id} className="glass-row" style={{ alignItems: "center" }}>
               <span className={`glass-pill ${t.side === "listing" ? "accent" : ""}`}>{t.side === "listing" ? "Listing" : "Buyer"}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 13.5 }}>{t.address}</div>
-                <div className="text-muted" style={{ fontSize: 12 }}>{[t.contactName, t.stage].filter(Boolean).join(" · ")}</div>
+                <div style={{ fontWeight: 600, fontSize: 14.5 }}>{t.address}</div>
+                <div className="text-muted" style={{ fontSize: 13 }}>{[t.contactName, t.stage].filter(Boolean).join(" · ")}</div>
               </div>
               <div style={{ textAlign: "right" }}>
                 <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800 }}>{t.priceDisplay}</div>
@@ -215,10 +215,10 @@ export function DashboardScreen() {
             <div key={b.id} className="glass-row" style={{ flexDirection: "column", gap: 6 }}>
               <div style={{ display: "flex", gap: 8, alignItems: "center", width: "100%" }}>
                 <span className={`glass-pill ${b.temperature === "hot" ? "accent" : ""}`}>{b.temperature}</span>
-                <strong style={{ fontSize: 13.5, flex: 1 }}>{b.name}</strong>
-                <button className="glass-btn" style={{ padding: "4px 10px", fontSize: 11 }} onClick={() => app.goto("scout" as Screen)}>Open in Buyer Scout</button>
+                <strong style={{ fontSize: 14.5, flex: 1 }}>{b.name}</strong>
+                <button className="glass-btn" style={{ padding: "4px 10px", fontSize: 12 }} onClick={() => app.goto("scout" as Screen)}>Open in Buyer Scout</button>
               </div>
-              <div className="text-muted" style={{ fontSize: 12 }}>{b.ceiling ?? "Ceiling [TBD — source required]"} · {b.areas.join(", ") || "areas TBD"}</div>
+              <div className="text-muted" style={{ fontSize: 13 }}>{b.ceiling ?? "Ceiling [TBD — source required]"} · {b.areas.join(", ") || "areas TBD"}</div>
               <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                 {b.hardConstraints.map((c) => <span key={c} className="glass-pill" style={{ fontSize: 10 }}>{c}</span>)}
                 {b.mustHaves.map((c) => <span key={c} className="glass-pill" style={{ fontSize: 10 }}>✓ {c}</span>)}
@@ -234,10 +234,10 @@ export function DashboardScreen() {
             <div key={m.buyerId + m.propertyId} className="glass-row">
               <div style={{ width: 44, height: 44, borderRadius: 12, display: "grid", placeItems: "center", background: "var(--color-text)", color: "var(--color-bg)", fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 18, flex: "none" }}>{m.result.score}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 13.5 }}>{m.buyerLabel} ↔ {m.address}</div>
-                <div className="text-muted" style={{ fontSize: 12 }}>{[m.property?.price, m.property?.beds != null ? `${m.property.beds} bd` : null, m.property?.area, m.property?.source ? `via ${m.property.source}` : null].filter(Boolean).join(" · ")}</div>
-                {m.result.reasons.slice(0, 2).map((r, i) => <div key={i} style={{ fontSize: 12, marginTop: 2 }}><span style={{ color: "var(--color-accent-700)", fontWeight: 800 }}>✓</span> {r.text} <span className="glass-pill" style={{ fontSize: 9.5 }}>{r.source}</span></div>)}
-                {m.result.verifyQuestions[0] && <div className="text-muted" style={{ fontSize: 11.5, marginTop: 2 }}>Verify: {m.result.verifyQuestions[0]}</div>}
+                <div style={{ fontWeight: 600, fontSize: 14.5 }}>{m.buyerLabel} ↔ {m.address}</div>
+                <div className="text-muted" style={{ fontSize: 13 }}>{[m.property?.price, m.property?.beds != null ? `${m.property.beds} bd` : null, m.property?.area, m.property?.source ? `via ${m.property.source}` : null].filter(Boolean).join(" · ")}</div>
+                {m.result.reasons.slice(0, 2).map((r, i) => <div key={i} style={{ fontSize: 13, marginTop: 2 }}><span style={{ color: "var(--color-accent-700)", fontWeight: 800 }}>✓</span> {r.text} <span className="glass-pill" style={{ fontSize: 9.5 }}>{r.source}</span></div>)}
+                {m.result.verifyQuestions[0] && <div className="text-muted" style={{ fontSize: 12.5, marginTop: 2 }}>Verify: {m.result.verifyQuestions[0]}</div>}
               </div>
             </div>
           ))}
@@ -273,7 +273,7 @@ function Stat({ label, value, sub, tint }: { label: string; value: string; sub?:
     <div className={`glass-stat ${tint ?? ""}`}>
       <div className="text-muted" style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</div>
       <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 26, lineHeight: 1.1, margin: "2px 0" }}>{value}</div>
-      {sub && <div className="text-muted" style={{ fontSize: 11.5 }}>{sub}</div>}
+      {sub && <div className="text-muted" style={{ fontSize: 12.5 }}>{sub}</div>}
     </div>
   );
 }
@@ -282,9 +282,9 @@ function YtdCol({ label, s }: { label: string; s: Side }) {
   return (
     <div className="glass-stat">
       <div className="text-muted" style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</div>
-      <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 24, margin: "2px 0" }}>{s.deals} <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.6 }}>deals</span></div>
-      <div style={{ fontSize: 12.5 }}>{money(s.volume)} <span className="text-muted">volume</span></div>
-      <div style={{ fontSize: 12.5 }}>{money(s.gci)} <span className="text-muted">GCI</span></div>
+      <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 24, margin: "2px 0" }}>{s.deals} <span style={{ fontSize: 13, fontWeight: 600, opacity: 0.6 }}>deals</span></div>
+      <div style={{ fontSize: 13.5 }}>{money(s.volume)} <span className="text-muted">volume</span></div>
+      <div style={{ fontSize: 13.5 }}>{money(s.gci)} <span className="text-muted">GCI</span></div>
     </div>
   );
 }
@@ -294,8 +294,8 @@ function TodoRow({ t, onToggle, accent }: { t: Todo; onToggle: (t: Todo) => void
     <div className="glass-row">
       <button className={`glass-check ${t.done ? "on" : ""}`} onClick={() => onToggle(t)} aria-pressed={t.done} aria-label={`Mark ${t.title}`}>{t.done ? "✓" : ""}</button>
       <div style={{ flex: 1, minWidth: 0, opacity: t.done ? 0.5 : 1, textDecoration: t.done ? "line-through" : "none" }}>
-        <div style={{ fontWeight: accent ? 700 : 500, fontSize: 13.5 }}>{t.title}</div>
-        {t.contactName && <div className="text-muted" style={{ fontSize: 11.5 }}>{t.contactName}</div>}
+        <div style={{ fontWeight: accent ? 700 : 500, fontSize: 14.5 }}>{t.title}</div>
+        {t.contactName && <div className="text-muted" style={{ fontSize: 12.5 }}>{t.contactName}</div>}
       </div>
     </div>
   );
@@ -308,8 +308,8 @@ function ContactList({ title, list, accent, onOpen }: { title: string; list: Con
       {list.length === 0 && <Muted small>None yet.</Muted>}
       {list.map((c) => (
         <button key={c.id} onClick={() => onOpen(c.id)} style={{ display: "block", width: "100%", textAlign: "left", font: "inherit", border: "none", background: "transparent", cursor: "pointer", padding: "6px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-          <div style={{ fontWeight: 600, fontSize: 13 }}>{c.name}</div>
-          <div className="text-muted" style={{ fontSize: 11.5 }}>{[c.stage, c.nextStep, c.phone].filter(Boolean).join(" · ")}</div>
+          <div style={{ fontWeight: 600, fontSize: 14 }}>{c.name}</div>
+          <div className="text-muted" style={{ fontSize: 12.5 }}>{[c.stage, c.nextStep, c.phone].filter(Boolean).join(" · ")}</div>
         </button>
       ))}
     </div>
