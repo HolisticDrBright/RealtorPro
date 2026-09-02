@@ -53,6 +53,12 @@ export function SettingsScreen() {
             {app.theme === "light" ? "Switch to dark" : "Switch to light"}
           </button>
         </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, marginTop: 6 }}>
+          <span>Interface</span>
+          <button className="btn btn-secondary" onClick={app.toggleUi}>
+            {app.ui === "glass" ? "Switch to Modernist (flat)" : "Switch to Apple glass"}
+          </button>
+        </div>
         <div className="card-kicker" style={{ marginTop: 8 }}>Keyboard</div>
         <Row k="Search" v="⌘K" />
         <Row k="Capture note" v="N" />

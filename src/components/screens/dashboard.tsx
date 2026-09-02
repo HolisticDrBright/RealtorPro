@@ -112,10 +112,10 @@ export function DashboardScreen() {
           )}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, alignContent: "start" }}>
-          <Stat label="Appointments" value={String(data.todayEvents.length)} sub={data.todayEvents[0] ? `Next ${time(data.todayEvents[0].startsAt)}` : "Clear"} />
-          <Stat label="To-do done" value={`${done}/${data.todos.length}`} sub={`${priorities.filter((p) => !p.done).length} priorities open`} />
-          <Stat label="Calls to make" value={String(calls.filter((c) => !c.done).length)} sub="Today" />
-          <Stat label="Deal-risk alerts" value={String(data.risks.length)} sub={data.risks.filter((r) => r.riskFlag === "high").length + " act today"} />
+          <Stat tint="tint-blue" label="Appointments" value={String(data.todayEvents.length)} sub={data.todayEvents[0] ? `Next ${time(data.todayEvents[0].startsAt)}` : "Clear"} />
+          <Stat tint="tint-mint" label="To-do done" value={`${done}/${data.todos.length}`} sub={`${priorities.filter((p) => !p.done).length} priorities open`} />
+          <Stat tint="tint-violet" label="Calls to make" value={String(calls.filter((c) => !c.done).length)} sub="Today" />
+          <Stat tint="tint-peach" label="Deal-risk alerts" value={String(data.risks.length)} sub={data.risks.filter((r) => r.riskFlag === "high").length + " act today"} />
         </div>
       </div>
 
@@ -268,9 +268,9 @@ async function postPatch(url: string, body: unknown) {
   }
 }
 
-function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function Stat({ label, value, sub, tint }: { label: string; value: string; sub?: string; tint?: string }) {
   return (
-    <div className="glass-stat">
+    <div className={`glass-stat ${tint ?? ""}`}>
       <div className="text-muted" style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</div>
       <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 26, lineHeight: 1.1, margin: "2px 0" }}>{value}</div>
       {sub && <div className="text-muted" style={{ fontSize: 11.5 }}>{sub}</div>}

@@ -67,9 +67,10 @@ export function AppShell() {
   const lastSync = app.fubSync === "disconnected" ? "—" : app.lastSync;
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", alignItems: "stretch", fontFamily: "var(--font-body)", fontSize: 14 }}>
+    <div style={{ display: "flex", minHeight: "100vh", alignItems: "stretch", fontFamily: "var(--font-body)", fontSize: 14, position: "relative", zIndex: 1 }}>
       <aside
         aria-label="Primary navigation"
+        className="glass-sidebar"
         style={{
           width: 220,
           flex: "none",
@@ -93,6 +94,7 @@ export function AppShell() {
             return (
               <button
                 key={id}
+                className="glass-nav-item"
                 onClick={() => app.setScreen(id)}
                 aria-current={active ? "page" : undefined}
                 style={{
@@ -126,6 +128,7 @@ export function AppShell() {
 
       <main style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         <header
+          className="glass-header"
           style={{
             display: "flex",
             alignItems: "center",
@@ -148,8 +151,9 @@ export function AppShell() {
           </button>
         </header>
 
-        <div style={{ flex: 1, overflow: "auto", padding: "26px 28px 48px" }}>
+        <div style={{ flex: 1, overflow: "auto", padding: app.ui === "glass" ? 0 : "26px 28px 48px" }}>
           {app.screen === "dashboard" && <DashboardScreen />}
+          <div className={app.ui === "glass" && app.screen !== "dashboard" ? "glass-sheet" : undefined}>
           {app.screen === "today" && <TodayScreen />}
           {app.screen === "scout" && <BuyerScoutScreen />}
           {app.screen === "studio" && <ListingStudioScreen />}
@@ -161,6 +165,7 @@ export function AppShell() {
           {app.screen === "people" && <PeopleScreen />}
           {app.screen === "fub" && <FubScreen />}
           {app.screen === "settings" && <SettingsScreen />}
+          </div>
         </div>
       </main>
 
@@ -171,7 +176,8 @@ export function AppShell() {
       {app.toast && (
         <div
           role="status"
-          style={{
+          className={app.ui === "glass" ? "glass-toast" : undefined}
+          style={app.ui === "glass" ? undefined : {
             position: "fixed",
             left: 24,
             bottom: 24,

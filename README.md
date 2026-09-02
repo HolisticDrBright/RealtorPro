@@ -138,9 +138,17 @@ workspace/
 - [`docs/MODULES.md`](./docs/MODULES.md) — the five extended modules (endpoints,
   workflows, guardrails, and paid-provider notes).
 
+## Apple glass UI
+
+The whole app ships in an **Apple-glass** interface by default: a soft mesh
+wallpaper, floating frosted sidebar and header, translucent rounded controls,
+SF-style type, and full dark-mode support. Settings → *Interface* switches
+back to the original flat Modernist look at any time (both share the same
+components; the glass theme is a CSS layer keyed on `data-ui="glass"`).
+
 ## Dashboard (home screen)
 
-The app opens on a glass-styled **Dashboard** — the daily game plan — built
+The app opens on the **Dashboard** — the daily game plan — built
 from local data only:
 
 - **Daily briefing** with a headline and ordered sections (protect the deals,

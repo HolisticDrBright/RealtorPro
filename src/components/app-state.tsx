@@ -55,6 +55,7 @@ interface AppContextValue {
   buyerId: string;
   contactId: string;
   theme: "light" | "dark";
+  ui: "glass" | "modernist";
   fubSync: FubSync;
   shortlist: Record<string, boolean>;
   imports: Record<string, ImportState>;
@@ -80,6 +81,7 @@ interface AppContextValue {
   pickBuyer: (id: string) => void;
   pickContact: (id: string) => void;
   toggleTheme: () => void;
+  toggleUi: () => void;
   say: (msg: string) => void;
   openNote: () => void;
   closeNote: () => void;
@@ -123,6 +125,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [buyerId, setBuyerId] = useState("b1");
   const [contactId, setContactId] = useState("c3");
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [ui, setUi] = useState<"glass" | "modernist">("glass");
   const [fubSync] = useState<FubSync>("healthy");
   const [shortlist, setShortlist] = useState<Record<string, boolean>>({});
   const [imports, setImports] = useState<Record<string, ImportState>>({});
@@ -338,6 +341,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     buyerId,
     contactId,
     theme,
+    ui,
     fubSync,
     shortlist,
     imports,
@@ -361,6 +365,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     pickBuyer: setBuyerId,
     pickContact: setContactId,
     toggleTheme: () => setTheme((t) => (t === "light" ? "dark" : "light")),
+    toggleUi: () => setUi((u) => (u === "glass" ? "modernist" : "glass")),
     say,
     openNote: () => {
       setNoteOpen(true);
@@ -390,7 +395,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div data-theme={theme} style={{ minHeight: "100vh", background: "var(--color-bg)", color: "var(--color-text)" }}>
+    <div data-theme={theme} data-ui={ui} style={{ minHeight: "100vh", background: ui === "glass" ? "transparent" : "var(--color-bg)", color: "var(--color-text)", position: "relative" }}>
+      {ui === "glass" && <div className="wallpaper" aria-hidden="true" />}
       <AppContext.Provider value={value}>{children}</AppContext.Provider>
     </div>
   );
