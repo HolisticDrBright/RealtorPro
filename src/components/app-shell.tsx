@@ -2,6 +2,7 @@
 
 import { useApp, type Screen } from "./app-state";
 import {
+  IconDash,
   IconComp,
   IconFub,
   IconMic,
@@ -16,6 +17,7 @@ import {
   IconViz,
 } from "./icons";
 import { FUB_META } from "./ui";
+import { DashboardScreen } from "./screens/dashboard";
 import { TodayScreen } from "./screens/today";
 import { BuyerScoutScreen } from "./screens/buyer-scout";
 import { ListingStudioScreen } from "./screens/listing-studio";
@@ -30,6 +32,7 @@ import { SettingsScreen } from "./screens/settings";
 import { NoteDialog, EmailDialog, DetailDialog } from "./dialogs";
 
 const TITLES: Record<Screen, string> = {
+  dashboard: "Dashboard",
   today: "Today",
   scout: "Buyer Scout",
   studio: "Listing Studio",
@@ -44,6 +47,7 @@ const TITLES: Record<Screen, string> = {
 };
 
 const NAV: { id: Screen; label: string; Icon: typeof IconToday }[] = [
+  { id: "dashboard", label: "Dashboard", Icon: IconDash },
   { id: "today", label: "Today", Icon: IconToday },
   { id: "scout", label: "Buyer Scout", Icon: IconScout },
   { id: "studio", label: "Listing Studio", Icon: IconStudio },
@@ -145,6 +149,7 @@ export function AppShell() {
         </header>
 
         <div style={{ flex: 1, overflow: "auto", padding: "26px 28px 48px" }}>
+          {app.screen === "dashboard" && <DashboardScreen />}
           {app.screen === "today" && <TodayScreen />}
           {app.screen === "scout" && <BuyerScoutScreen />}
           {app.screen === "studio" && <ListingStudioScreen />}

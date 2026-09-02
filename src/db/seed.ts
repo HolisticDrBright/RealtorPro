@@ -11,6 +11,7 @@ import fs from "node:fs";
 import { DB_FILE, WORKSPACE_SUBDIRS } from "../lib/paths";
 import * as schema from "./schema";
 import * as m from "./schema.modules";
+import * as d from "./schema.dashboard";
 import { DATA, OM } from "../data/mock-data";
 import { parseCeiling, parseMoney } from "../lib/listing-parse";
 
@@ -84,6 +85,9 @@ function clear() {
     "signal_actions",
     "signals",
     "farm_records",
+    "todos",
+    "calendar_events",
+    "transactions",
   ];
   for (const t of tables) {
     try {
@@ -130,6 +134,7 @@ for (const c of DATA.contacts) {
       nextStep: c.next,
       phone: c.phone,
       syncStatus: c.sync,
+      temperature: ({ c1: "hot", c2: "warm", c3: "hot", c4: "warm", c5: "cold" } as Record<string, string>)[c.id] ?? "warm",
     })
     .run();
 }
@@ -590,6 +595,59 @@ db.insert(m.signals).values([
 ]).run();
 
 console.log("✔ Modules seeded:", { brandKits: OM.brandKits.length, omDrafts: OM.projects.length, rentRollUnits: OM.rentroll.length, comps: OM.comps.length, signals: 3 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Dashboard — todos, calendar, transactions, off-market. FICTIONAL demo data.
+// Dated relative to "today" so the dashboard is populated on first run.
+// ═══════════════════════════════════════════════════════════════════════════
+const today = new Date();
+const ymd = (dt: Date) => dt.toISOString().slice(0, 10);
+const at = (h: number, mnt = 0) => { const x = new Date(today); x.setHours(h, mnt, 0, 0); return x.toISOString(); };
+const year = today.getFullYear();
+const TODAY = ymd(today);
+
+db.insert(d.todos).values([
+  { id: "td1", title: "Reply to Ruiz inspection addendum (seller countered $4,500 credit)", kind: "priority", dueDate: TODAY, contactId: "c3" },
+  { id: "td2", title: "Approve Alameda MLS description before photos go live", kind: "priority", dueDate: TODAY, propertyId: "l1" },
+  { id: "td3", title: "Confirm Whitfield appraisal order with lender", kind: "priority", dueDate: TODAY, contactId: "c2" },
+  { id: "td4", title: "Review 5 new Mehta matches before the 10:30 showing", kind: "task", dueDate: TODAY, contactId: "c1" },
+  { id: "td5", title: "Push Saturday open-house sign-ins to Follow Up Boss", kind: "task", dueDate: TODAY, propertyId: "l1" },
+  { id: "td6", title: "Order sign + lockbox for Alameda", kind: "task", dueDate: TODAY, propertyId: "l1", done: true, completedAt: at(8, 5) },
+  { id: "td7", title: "Pre-approval check-in", kind: "call", dueDate: TODAY, contactId: "c3", notes: "(971) 555-0187" },
+  { id: "td8", title: "Lender — appraisal confirmation number", kind: "call", dueDate: TODAY, contactId: "c2", notes: "(503) 555-0119" },
+  { id: "td9", title: "Anniversary check-in call", kind: "call", dueDate: TODAY, contactId: "c5", notes: "(503) 555-0175" },
+  { id: "td10", title: "Listing agent — confirm Reedway sqft (CSV vs county)", kind: "call", dueDate: TODAY, propertyId: "p1" },
+]).run();
+
+db.insert(d.calendarEvents).values([
+  { id: "ev1", title: "Showing — 4823 SE Reedway St", startsAt: at(10, 30), endsAt: at(11, 15), location: "Meet at property", source: "local", contactId: "c1", propertyId: "p1" },
+  { id: "ev2", title: "Listing photos walkthrough", startsAt: at(13, 0), endsAt: at(14, 0), location: "3117 NE Alameda St", source: "local", contactId: "c4", propertyId: "l1" },
+  { id: "ev3", title: "Pre-approval check-in call — Ruiz", startsAt: at(16, 15), endsAt: at(16, 45), location: "Phone", source: "local", contactId: "c3" },
+  { id: "ev4", title: "Team pipeline review", startsAt: at(9, 0), endsAt: at(9, 30), location: "Office", source: "local" },
+]).run();
+
+// Closed YTD (fictional) + active pipeline.
+db.insert(d.transactions).values([
+  { id: "tx1", side: "listing", address: "2718 SE Clinton St", price: 812000, status: "closed", closedAt: `${year}-01-24`, commissionPct: 2.5, gci: 20300, contactId: "c5" },
+  { id: "tx2", side: "buyer", address: "5541 NE 30th Ave", price: 649000, status: "closed", closedAt: `${year}-02-18`, commissionPct: 2.5, gci: 16225 },
+  { id: "tx3", side: "listing", address: "1440 SE Ladd Ave", price: 1275000, status: "closed", closedAt: `${year}-03-29`, commissionPct: 2.25, gci: 28688 },
+  { id: "tx4", side: "buyer", address: "8317 N Fenwick Ave", price: 489000, status: "closed", closedAt: `${year}-04-11`, commissionPct: 2.5, gci: 12225 },
+  { id: "tx5", side: "buyer", address: "3920 SE Taylor St", price: 735000, status: "closed", closedAt: `${year}-05-30`, commissionPct: 2.5 },
+  { id: "tx6", side: "listing", address: "6122 SE Yamhill St", price: 699000, status: "closed", closedAt: `${year}-06-20`, commissionPct: 2.5, gci: 17475 },
+  { id: "tx7", side: "buyer", address: "7215 N Curtis Ave", price: 512000, status: "pending", stage: "Inspection period", contactId: "c3", commissionPct: 2.5 },
+  { id: "tx8", side: "buyer", address: "1150 NW Quimby St #804", price: 436000, status: "pending", stage: "Appraisal", contactId: "c2", commissionPct: 2.5 },
+  { id: "tx9", side: "listing", address: "3117 NE Alameda St", price: 1150000, status: "active", stage: "Coming soon — photos Thu", contactId: "c4", propertyId: "l1", commissionPct: 2.5 },
+  { id: "tx10", side: "buyer", address: "Mehta — active search", price: 700000, status: "active", stage: "Touring", contactId: "c1", commissionPct: 2.5 },
+]).run();
+
+// Off-market properties (agent-entered / owner-authorized, fictional).
+db.insert(schema.properties).values([
+  { id: "om-p1", address: "5218 SE 41st Ave", price: "$685,000", beds: 3, baths: 2, sqft: "1,880", lot: "5,000 sqft", propertyType: "Residential", status: "off_market", features: ["fenced yard", "detached garage", "updated kitchen 2022", "office nook"], remarks: "Owner open to a quiet sale before listing. Fenced backyard, detached garage + driveway.", sourceMeta: { hood: "Woodstock", source: "owner-authorized" } },
+  { id: "om-p2", address: "1420 NW Irving St #506", price: "$429,000", beds: 1, baths: 1, sqft: "790", propertyType: "Condo", status: "off_market", features: ["in-unit laundry", "deeded parking", "elevator building", "city view"], remarks: "HOA $480/mo. In-unit washer/dryer, deeded space P-12.", sourceMeta: { hood: "Pearl District", source: "sphere referral" } },
+  { id: "om-p3", address: "9012 N Kellogg St", price: "$505,000", beds: 3, baths: 1.5, sqft: "1,640", lot: "4,800 sqft", propertyType: "Residential", status: "off_market", features: ["basement", "bonus room", "FHA eligible"], remarks: "St. Johns bungalow with finished basement. FHA-eligible condition per owner.", sourceMeta: { hood: "St. Johns", source: "farm mailer response" } },
+]).run();
+
+console.log("✔ Dashboard seeded:", { todos: 10, events: 4, transactions: 10, offMarket: 3 });
 
 console.log("✔ Seed complete:", {
   contacts: DATA.contacts.length,

@@ -20,6 +20,7 @@ import { DATA, draftEmail, type Buyer, type Match } from "@/data/mock-data";
  */
 
 export type Screen =
+  | "dashboard"
   | "today"
   | "scout"
   | "studio"
@@ -118,7 +119,7 @@ async function apiPost(path: string, body: unknown): Promise<unknown | null> {
 }
 
 export function AppStateProvider({ children }: { children: React.ReactNode }) {
-  const [screen, setScreen] = useState<Screen>("today");
+  const [screen, setScreen] = useState<Screen>("dashboard");
   const [buyerId, setBuyerId] = useState("b1");
   const [contactId, setContactId] = useState("c3");
   const [theme, setTheme] = useState<"light" | "dark">("light");

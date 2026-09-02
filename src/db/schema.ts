@@ -95,6 +95,8 @@ export const contacts = sqliteTable(
     phone: text("phone"),
     email: text("email"),
     syncStatus: text("sync_status").default("Synced"),
+    // hot | warm | cold — agent-set relationship temperature for the dashboard.
+    temperature: text("temperature").default("warm"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

@@ -454,3 +454,55 @@ textarea.input {
   background: var(--color-neutral-300);
   border: 1px dashed color-mix(in srgb, var(--color-text) 30%, transparent);
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Glass (Apple-style) treatment — scoped to the Dashboard home screen only.
+   The rest of the app keeps the Modernist zero-radius system.
+   ══════════════════════════════════════════════════════════════════════════ */
+.glass-scene {
+  position: relative;
+  border-radius: 24px;
+  padding: 26px;
+  margin: -6px;
+  background:
+    radial-gradient(1200px 600px at 8% -10%, color-mix(in srgb, var(--color-accent) 16%, transparent), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, color-mix(in srgb, #7aa6ff 18%, transparent), transparent 60%),
+    radial-gradient(800px 500px at 60% 110%, color-mix(in srgb, #ffc06a 14%, transparent), transparent 60%);
+}
+.glass {
+  background: color-mix(in srgb, var(--color-bg) 62%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  backdrop-filter: blur(22px) saturate(1.5);
+  border: 1px solid color-mix(in srgb, #ffffff 65%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #ffffff 70%, transparent),
+    0 10px 30px color-mix(in srgb, #2d2b2b 12%, transparent);
+  border-radius: 20px;
+  padding: 18px 20px;
+}
+[data-theme="dark"] .glass {
+  background: color-mix(in srgb, #2a2827 58%, transparent);
+  border-color: color-mix(in srgb, #ffffff 14%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 10%, transparent), 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+.glass-kicker { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); font-weight: 800; }
+.glass-title { font-family: var(--font-heading); font-weight: 800; font-size: 15px; letter-spacing: -0.01em; margin: 2px 0 10px; }
+.glass-pill {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 11px; padding: 3px 10px; border-radius: 999px;
+  background: color-mix(in srgb, var(--color-text) 8%, transparent);
+}
+.glass-pill.accent { background: color-mix(in srgb, var(--color-accent) 16%, transparent); color: var(--color-accent-700); }
+.glass-stat { border-radius: 14px; padding: 12px 14px; background: color-mix(in srgb, var(--color-text) 5%, transparent); }
+.glass-row { display: flex; gap: 12px; align-items: flex-start; padding: 9px 0; border-bottom: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent); }
+.glass-row:last-child { border-bottom: none; }
+.glass-check {
+  width: 18px; height: 18px; border-radius: 6px; border: 1.5px solid color-mix(in srgb, var(--color-text) 35%, transparent);
+  display: grid; place-items: center; cursor: pointer; flex: none; margin-top: 1px; background: transparent; font-size: 12px; color: var(--color-bg);
+}
+.glass-check.on { background: var(--color-accent); border-color: var(--color-accent); }
+.glass-btn {
+  border-radius: 999px; padding: 7px 14px; font-family: var(--font-heading); font-weight: 800; font-size: 12.5px; cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--color-text) 18%, transparent); background: color-mix(in srgb, var(--color-bg) 70%, transparent); color: var(--color-text);
+}
+.glass-btn.primary { background: var(--color-accent); color: var(--color-bg); border-color: transparent; }
+.glass-btn:disabled { opacity: 0.45; cursor: not-allowed; }

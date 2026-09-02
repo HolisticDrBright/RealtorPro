@@ -138,6 +138,33 @@ workspace/
 - [`docs/MODULES.md`](./docs/MODULES.md) — the five extended modules (endpoints,
   workflows, guardrails, and paid-provider notes).
 
+## Dashboard (home screen)
+
+The app opens on a glass-styled **Dashboard** — the daily game plan — built
+from local data only:
+
+- **Daily briefing** with a headline and ordered sections (protect the deals,
+  priorities, schedule, calls, off-market matches, hot buyers, YTD). Click
+  **Ask Claude for today's game plan** to have Claude write it from the same
+  facts (needs `ANTHROPIC_API_KEY`; otherwise the local plan is shown).
+- **Priority tasks + today's to-do** with checkboxes (`PATCH /api/todos/:id`),
+  and **Paste today's to-do list** (`!` = priority, `call:` = call).
+- **Calls to make today** with tap-to-call links.
+- **Work calendar** — local events plus `.ics` import from Gmail/Google
+  Calendar or Outlook exports (`POST /api/calendar/events` with `{ ics }`).
+  Live account sync is a separately-approved connector.
+- **Year-to-date closings** split Listings / Buyers / Total: deals, volume,
+  GCI. GCI is the recorded value, or price × commission % when both exist —
+  never estimated; unknowns are counted and shown.
+- **Active transactions** (price, listing vs buyer, stage).
+- **Active buyers** (hot/warm) with their written criteria.
+- **Off-market matches** — buyers × owner-authorized off-market properties
+  using the same explainable, facts-only scorer as Buyer Scout.
+- **Contacts** — hot buyers, warm buyers, sellers, past clients.
+
+Endpoints: `GET /api/dashboard`, `POST /api/dashboard/briefing`,
+`GET/POST /api/todos`, `PATCH/DELETE /api/todos/:id`, `GET/POST /api/calendar/events`.
+
 ## Extended modules
 
 Five modules build on the base app; all are local-first, source-grounded,

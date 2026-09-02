@@ -125,3 +125,12 @@ export const IconSignal = (p: IconProps) => (
     <path d="M12 2a10 10 0 0 1 10 10M12 6a6 6 0 0 1 6 6M4.9 19.1A10 10 0 0 1 2 12" />
   </Base>
 );
+
+export const IconDash = (p: IconProps) => (
+  <Base {...p}>
+    <rect x="3" y="3" width="8" height="8" />
+    <rect x="13" y="3" width="8" height="5" />
+    <rect x="13" y="10" width="8" height="11" />
+    <rect x="3" y="13" width="8" height="8" />
+  </Base>
+);
