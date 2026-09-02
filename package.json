@@ -2,7 +2,7 @@
   "name": "vanessa-command-center",
   "version": "0.1.0",
   "private": true,
-  "description": "Luxury real estate command center \u2014 CRM, tasks, buyers, listings, pipeline, escrows and income in one local-first app.",
+  "description": "Luxury real estate command center — CRM, tasks, buyers, listings, pipeline, escrows and income in one local-first app.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -18,7 +18,7 @@
     "setup": "npm run db:migrate && npm run db:seed"
   },
   "dependencies": {
-    "better-sqlite3": "11.8.1",
+    "better-sqlite3": "^12.4.1",
     "drizzle-orm": "0.38.4",
     "next": "^15.5.21",
     "react": "19.0.0",

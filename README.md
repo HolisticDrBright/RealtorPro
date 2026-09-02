@@ -10,15 +10,17 @@ luxury data so the dashboard is complete on first launch.
 ## Run it
 
 ```bash
-git clone https://github.com/HolisticDrBright/RealtorPro
+git clone https://github.com/HolisticDrBright/RealtorPro   # skip if you already have the folder
 cd RealtorPro
+git fetch origin
 git checkout claude/command-center
 npm install
 npm run setup     # creates workspace/command-center.db and seeds sample data
 npm run dev       # http://localhost:3000
 ```
 
-Windows PowerShell: run the same commands one per line. To start over with
+Windows PowerShell: run the same commands one per line. Node 22 or 24 is
+required; no compiler is needed (SQLite ships as a prebuilt binary). To start over with
 fresh data: `npm run db:reset` then `npm run setup`.
 
 ## What's inside
