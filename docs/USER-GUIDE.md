@@ -47,6 +47,9 @@ active buyers with their criteria, buyer ↔ off-market matches, and contact lis
   folder of your vault (appears when a vault is linked).
 - Import calendar events by exporting an `.ics` file from Gmail/Google Calendar or
   Outlook and pasting it in (no account connection needed).
+- *Rearrange the cards* — grab any card by the ⠿ handle at its top and drop it where
+  you want it, or hover and use the ↑ ↓ buttons. Your order is remembered on this
+  computer; *Reset layout* puts everything back.
 - Off-market matches use the same facts-only scorer as Buyer Scout; each match shows
   the reasons and the source of each reason.
 

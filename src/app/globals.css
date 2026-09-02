@@ -676,3 +676,38 @@ textarea.input {
 [data-ui="glass"] .input { font-size: 15px; font-weight: 500; }
 [data-ui="glass"] .table { font-size: 14.5px; }
 [data-ui="glass"] .table th { font-size: 12px; font-weight: 700; color: color-mix(in srgb, var(--color-text) 72%, transparent); }
+
+/* ── Dashboard: bold section titles + drag-to-rearrange cards ─────────────── */
+.glass-section-title {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: -0.005em;
+  color: var(--color-text);
+  margin: 0 0 6px;
+  padding-bottom: 4px;
+  border-bottom: 2px solid color-mix(in srgb, var(--color-text) 14%, transparent);
+}
+[data-ui="glass"] .glass-section-title { font-size: 15px; }
+.dash-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 1100px) { .dash-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dash-grid > .dash-card { grid-column: span 2 !important; } }
+@media (max-width: 640px)  { .dash-grid { grid-template-columns: 1fr; } .dash-grid > .dash-card { grid-column: span 1 !important; } }
+.dash-card { position: relative; min-width: 0; transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease; }
+.dash-card.is-dragging { opacity: 0.45; transform: scale(0.985); }
+.dash-card.is-over { outline: 2px dashed var(--color-accent); outline-offset: 4px; transform: translateY(-2px); }
+.dash-handle {
+  display: flex; align-items: center; gap: 8px; margin: -6px 0 8px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-text) 45%, transparent); cursor: grab; user-select: none;
+}
+.dash-handle:active { cursor: grabbing; }
+.dash-handle > span:first-child { font-size: 16px; line-height: 1; }
+.dash-handle-label { flex: 1; }
+.dash-handle-btns { display: inline-flex; gap: 4px; opacity: 0; transition: opacity .12s ease; }
+.dash-card:hover .dash-handle-btns, .dash-card:focus-within .dash-handle-btns { opacity: 1; }
+.dash-handle-btns button {
+  font: inherit; font-size: 12px; line-height: 1; width: 22px; height: 22px; border-radius: 999px; cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--color-text) 18%, transparent); background: color-mix(in srgb, var(--color-bg) 70%, transparent); color: inherit;
+}
+.dash-handle-btns button:disabled { opacity: 0.35; cursor: default; }
+@media (prefers-reduced-motion: reduce) { .dash-card { transition: none; } }

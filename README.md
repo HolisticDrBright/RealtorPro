@@ -171,6 +171,9 @@ from local data only:
 - **Off-market matches** — buyers × owner-authorized off-market properties
   using the same explainable, facts-only scorer as Buyer Scout.
 - **Contacts** — hot buyers, warm buyers, sellers, past clients.
+- **Rearrangeable layout** — drag any card by its handle (or use the ↑ ↓
+  buttons that appear on hover) to put the dashboard in your own order. The
+  order is saved in the browser; **Reset layout** restores the default.
 
 Endpoints: `GET /api/dashboard`, `POST /api/dashboard/briefing`,
 `GET/POST /api/todos`, `PATCH/DELETE /api/todos/:id`, `GET/POST /api/calendar/events`.
