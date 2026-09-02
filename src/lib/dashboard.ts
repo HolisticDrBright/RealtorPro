@@ -142,6 +142,10 @@ export interface GamePlanInput {
   dealRisks: { deal: string; issue: string }[];
   offMarketMatches: { buyer: string; address: string; score: number }[];
   ytd: YtdStats;
+  /** Optional read-only context from Gmail (subject lines + snippets, never bodies). */
+  inbox?: { from: string; subject: string; snippet: string; important?: boolean }[];
+  /** Optional open checkbox tasks pulled from the Obsidian vault (daily note / AgentOS folder). */
+  vaultTasks?: string[];
 }
 
 export interface GamePlanSection {
@@ -168,7 +172,9 @@ export function buildGamePlan(input: GamePlanInput): GamePlan {
   const sections: GamePlanSection[] = [];
   if (input.dealRisks.length) sections.push({ title: "Protect the deals", items: input.dealRisks.map((r) => `${r.deal} — ${r.issue}`) });
   if (openPriorities.length) sections.push({ title: "Priorities", items: openPriorities.map((p) => p.title) });
+  if (input.vaultTasks?.length) sections.push({ title: "From your vault", items: input.vaultTasks.slice(0, 8) });
   if (input.appointments.length) sections.push({ title: "Schedule", items: input.appointments.map((a) => `${a.time} · ${a.title}${a.location ? ` · ${a.location}` : ""}`) });
+  if (input.inbox?.length) sections.push({ title: "From your inbox", items: input.inbox.slice(0, 6).map((m) => `${m.from} — ${m.subject}${m.important ? " (flagged)" : ""}`) });
   if (openCalls.length) sections.push({ title: "Calls to make", items: openCalls.map((c) => c.contact ? `${c.contact} — ${c.title}` : c.title) });
   if (input.offMarketMatches.length) sections.push({ title: "Off-market matches to review", items: input.offMarketMatches.map((m) => `${m.buyer} ↔ ${m.address} (fit ${m.score})`) });
   if (input.hotBuyers.length) sections.push({ title: "Hot buyers to touch", items: input.hotBuyers.map((b) => `${b.name}${b.ceiling ? ` · ceiling ${b.ceiling}` : ""}${b.areas?.length ? ` · ${b.areas.join(", ")}` : ""}`) });

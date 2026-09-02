@@ -5,6 +5,8 @@ import { buyerCriteriaProfiles, contacts, deals, properties, userProfiles } from
 import { calendarEvents, todos, transactions } from "@/db/schema.dashboard";
 import { matchOffMarket, ytdStats, type GamePlanInput, type OffMarketProperty } from "@/lib/dashboard";
 import { buildGamePlan } from "@/lib/dashboard";
+import { googleForDashboard, googleStatus } from "@/services/google";
+import { vaultToday } from "@/services/obsidian";
 
 export function todayYmd(): string {
   return new Date().toISOString().slice(0, 10);
@@ -125,4 +127,24 @@ export function loadDashboard() {
     plan: buildGamePlan(planInput),
     planInput,
   };
+}
+
+/**
+ * Dashboard + live context: re-indexes the Obsidian vault when it changed,
+ * refreshes the Google calendar mirror / inbox snapshot (read-only, cached),
+ * and feeds both into the game plan. Never throws because of a connector —
+ * failures are reported in `google.error` and the local data still renders.
+ */
+export async function loadDashboardLive() {
+  let vault: ReturnType<typeof vaultToday>;
+  try { vault = vaultToday(todayYmd()); } catch { vault = { configured: false, vaultName: null, recent: [], tasks: [], changed: false }; }
+  const g = await googleForDashboard();
+  const base = loadDashboard(); // after the calendar mirror so Google events are included
+  const planInput: GamePlanInput = {
+    ...base.planInput,
+    inbox: g.inbox.map((m) => ({ from: m.from, subject: m.subject, snippet: m.snippet, important: m.important })),
+    vaultTasks: vault.tasks.map((t) => t.text),
+  };
+  const gs = googleStatus();
+  return { ...base, planInput, plan: buildGamePlan(planInput), inbox: g.inbox, vault, google: { configured: gs.configured, connected: gs.connected, email: gs.email, error: g.error } };
 }

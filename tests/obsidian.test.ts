@@ -90,3 +90,14 @@ describe("shouldIndex", () => {
     expect(shouldIndex("Recipes/pie.md", ["Clients"], [])).toBe(false);
   });
 });
+
+describe("Vault tasks and links", () => {
+  it("extracts open checkbox tasks only, resolving wikilink aliases", async () => {
+    const { extractOpenTasks, obsidianUri, isDailyNoteFor } = await import("../src/lib/obsidian");
+    const body = "# 2026-09-02\n- [ ] Call [[Jordan & Priya Mehta|Priya]] about Reedway\n- [x] Order lockbox\n* [ ] Send Ruiz addendum\n1. [ ] Pull comps\n- not a task";
+    expect(extractOpenTasks(body)).toEqual(["Call Priya about Reedway", "Send Ruiz addendum", "Pull comps"]);
+    expect(obsidianUri("My Vault", "Daily/2026-09-02.md")).toBe("obsidian://open?vault=My%20Vault&file=Daily%2F2026-09-02");
+    expect(isDailyNoteFor("Daily/2026-09-02.md", "2026-09-02")).toBe(true);
+    expect(isDailyNoteFor("Daily/2026-09-01.md", "2026-09-02")).toBe(false);
+  });
+});

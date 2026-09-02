@@ -6,6 +6,7 @@ import { contacts, providerConnections, syncEvents, userProfiles } from "@/db/sc
 import { getFub } from "@/services/fub/adapter";
 import { isClaudeConfigured } from "@/services/briefing";
 import { vaultStatus } from "@/services/obsidian";
+import { googleStatus } from "@/services/google";
 import { WORKSPACE_DIR } from "@/lib/paths";
 import { errorResponse, ok } from "@/lib/errors";
 export const runtime = "nodejs";
@@ -35,6 +36,7 @@ export async function GET() {
       fub: { configured: !fub.mock, mock: fub.mock, status: fub.status(), lastSyncAt: conn?.lastSyncAt ?? null, contactCount, fubLinkedContacts: fubContacts, log },
       claude: { configured: isClaudeConfigured(), model: process.env.AGENTOS_CLAUDE_MODEL ?? "claude-opus-5", llmProvider: process.env.AGENTOS_LLM_PROVIDER ?? "mock" },
       obsidian: vaultStatus(),
+      google: googleStatus(),
       dataMode: !fub.mock ? "live" : "demo",
       workspaceBytes: dirBytes(WORKSPACE_DIR),
     });

@@ -1,197 +1,71 @@
 "use client";
 
-import { useApp, type Screen } from "./app-state";
-import {
-  IconDash,
-  IconComp,
-  IconFub,
-  IconMic,
-  IconOm,
-  IconPeople,
-  IconRent,
-  IconScout,
-  IconSettings,
-  IconSignal,
-  IconStudio,
-  IconToday,
-  IconViz,
-} from "./icons";
-import { FUB_META } from "./ui";
+import { useEffect } from "react";
+import { fmtWhen, useApp } from "./app-state";
 import { DashboardScreen } from "./screens/dashboard";
-import { TodayScreen } from "./screens/today";
-import { BuyerScoutScreen } from "./screens/buyer-scout";
-import { ListingStudioScreen } from "./screens/listing-studio";
-import { OmStudioScreen } from "./screens/om-studio";
-import { DevelopmentVisualizerScreen } from "./screens/development-visualizer";
-import { RentRollStudioScreen } from "./screens/rent-roll-studio";
-import { CompLabScreen } from "./screens/comp-lab";
-import { SignalScoutScreen } from "./screens/signal-scout";
-import { PeopleScreen } from "./screens/people";
-import { FubScreen } from "./screens/follow-up-boss";
-import { SettingsScreen } from "./screens/settings";
-import { NoteDialog, EmailDialog, DetailDialog } from "./dialogs";
 
-const TITLES: Record<Screen, string> = {
-  dashboard: "Dashboard",
-  today: "Today",
-  scout: "Buyer Scout",
-  studio: "Listing Studio",
-  om: "OM Studio",
-  visualizer: "Development Visualizer",
-  rentroll: "Rent Roll Studio",
-  complab: "Comp Lab",
-  signals: "Signal Scout",
-  people: "People & Deals",
-  fub: "Follow Up Boss",
-  settings: "Settings",
-};
-
-const NAV: { id: Screen; label: string; Icon: typeof IconToday }[] = [
-  { id: "dashboard", label: "Dashboard", Icon: IconDash },
-  { id: "today", label: "Today", Icon: IconToday },
-  { id: "scout", label: "Buyer Scout", Icon: IconScout },
-  { id: "studio", label: "Listing Studio", Icon: IconStudio },
-  { id: "om", label: "OM Studio", Icon: IconOm },
-  { id: "visualizer", label: "Dev Visualizer", Icon: IconViz },
-  { id: "rentroll", label: "Rent Roll Studio", Icon: IconRent },
-  { id: "complab", label: "Comp Lab", Icon: IconComp },
-  { id: "signals", label: "Signal Scout", Icon: IconSignal },
-  { id: "people", label: "People & Deals", Icon: IconPeople },
-  { id: "fub", label: "Follow Up Boss", Icon: IconFub },
-  { id: "settings", label: "Settings", Icon: IconSettings },
-];
-
+/**
+ * Dashboard-only shell: a slim top bar and the dashboard. No sidebar, no
+ * other screens. The same API and database power the full app on the
+ * `claude/agentos-live-data` branch.
+ */
 export function AppShell() {
   const app = useApp();
-  const fubMeta = FUB_META[app.fubSync];
-  const lastSync = app.fubSync === "disconnected" ? "—" : app.lastSync;
+  const s = app.integrations;
+  const live = s?.dataMode === "live";
+
+  // Surface the result of a Google connection round-trip (?google=connected|denied|error).
+  useEffect(() => {
+    const u = new URL(window.location.href);
+    const g = u.searchParams.get("google");
+    if (!g) return;
+    app.say(g === "connected" ? "Google connected — calendar and inbox now feed the briefing (read-only)." : g === "denied" ? "Google connection cancelled." : `Google connection failed: ${u.searchParams.get("message") ?? "unknown error"}`);
+    u.searchParams.delete("google"); u.searchParams.delete("message");
+    window.history.replaceState({}, "", u.pathname + (u.search || ""));
+    app.reloadIntegrations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function disconnectGoogle() {
+    await fetch("/api/google/disconnect", { method: "POST" });
+    app.say("Google disconnected — local tokens removed.");
+    app.reloadIntegrations();
+  }
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", alignItems: "stretch", fontFamily: "var(--font-body)", fontSize: 15, position: "relative", zIndex: 1 }}>
-      <aside
-        aria-label="Primary navigation"
-        className="glass-sidebar"
-        style={{
-          width: 220,
-          flex: "none",
-          borderRight: "2px solid var(--color-divider)",
-          display: "flex",
-          flexDirection: "column",
-          position: "sticky",
-          top: 0,
-          height: "100vh",
-        }}
-      >
-        <div style={{ padding: "20px 16px 16px", borderBottom: "2px solid var(--color-divider)" }}>
-          <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 19, letterSpacing: "-0.01em" }}>AgentOS</div>
-          <div className="text-muted" style={{ fontSize: 12, marginTop: 2 }}>
-            Local-first · works with Follow Up Boss
-          </div>
+    <div className="lite-root">
+      <header className="lite-bar">
+        <div className="lite-brand">
+          <span className="lite-wordmark">AgentOS</span>
+          <span className="lite-sub">Dashboard</span>
         </div>
-        <nav style={{ display: "flex", flexDirection: "column", padding: "10px 0", gap: 2 }}>
-          {NAV.map(({ id, label, Icon }) => {
-            const active = app.screen === id;
-            return (
-              <button
-                key={id}
-                className="glass-nav-item"
-                onClick={() => app.setScreen(id)}
-                aria-current={active ? "page" : undefined}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  textAlign: "left",
-                  font: "inherit",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  border: "none",
-                  padding: "9px 16px 9px 13px",
-                  borderLeft: `3px solid ${active ? "var(--color-accent)" : "transparent"}`,
-                  color: active ? "var(--color-accent)" : "inherit",
-                  background: active ? "color-mix(in srgb, var(--color-accent) 8%, transparent)" : "transparent",
-                }}
-              >
-                <Icon />
-                {label}
-              </button>
-            );
-          })}
-        </nav>
-        <div style={{ marginTop: "auto", padding: "14px 16px", borderTop: "2px solid var(--color-divider)", display: "flex", flexDirection: "column", gap: 6 }}>
-          <span className={fubMeta.chipClass}>FUB · {fubMeta.chip}</span>
-          <span className="text-muted" style={{ fontSize: 12 }}>
-            Last sync {lastSync}
+        <div className="lite-meta">
+          {s?.agent?.name && <span>{s.agent.name}</span>}
+          <span className={`lite-chip ${live ? "on" : ""}`} title={live ? `Follow Up Boss connected · last sync ${fmtWhen(s?.fub.lastSyncAt)}` : "Set FUB_API_KEY in .env to connect your account"}>
+            {live ? "Live · Follow Up Boss" : "Demo data"}
           </span>
+          {s?.claude.configured && <span className="lite-chip on" title={`Claude · ${s.claude.model}`}>Claude</span>}
+          {s?.obsidian.exists && <span className="lite-chip on" title={`${s.obsidian.noteCount} notes indexed`}>Obsidian</span>}
+          {s?.google.connected ? (
+            <button className="lite-chip on" style={{ cursor: "pointer", font: "inherit", fontSize: 11.5, background: "transparent" }} onClick={disconnectGoogle} title={`Connected as ${s.google.email ?? "Google"} · click to disconnect`}>Google ✓</button>
+          ) : s?.google.configured ? (
+            <a className="lite-btn" href="/api/google/auth" style={{ textDecoration: "none" }}>Connect Google</a>
+          ) : null}
+          <button className="lite-btn" onClick={app.onSync} disabled={app.syncing}>{app.syncing ? "Syncing…" : "Sync FUB"}</button>
+          <button className="lite-btn" onClick={app.toggleTheme} aria-label="Toggle dark mode">{app.theme === "light" ? "Dark" : "Light"}</button>
         </div>
-      </aside>
+      </header>
 
-      <main style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-        <header
-          className="glass-header"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 16,
-            padding: "14px 28px",
-            borderBottom: "2px solid var(--color-divider)",
-            flexWrap: "wrap",
-          }}
-        >
-          <h4 style={{ margin: 0, fontSize: 18 }}>{TITLES[app.screen]}</h4>
-          <input
-            className="input"
-            style={{ maxWidth: 340, marginLeft: "auto" }}
-            placeholder="Search people, addresses, MLS #  ⌘K"
-            aria-label="Search people, addresses, and MLS numbers"
-          />
-          <button className="btn btn-primary" onClick={app.openNote}>
-            <IconMic size={14} />
-            Capture note
-          </button>
-        </header>
-
-        <div style={{ flex: 1, overflow: "auto", padding: app.ui === "glass" ? 0 : "26px 28px 48px" }}>
-          {app.screen === "dashboard" && <DashboardScreen />}
-          <div className={app.ui === "glass" && app.screen !== "dashboard" ? "glass-sheet" : undefined}>
-          {app.screen === "today" && <TodayScreen />}
-          {app.screen === "scout" && <BuyerScoutScreen />}
-          {app.screen === "studio" && <ListingStudioScreen />}
-          {app.screen === "om" && <OmStudioScreen />}
-          {app.screen === "visualizer" && <DevelopmentVisualizerScreen />}
-          {app.screen === "rentroll" && <RentRollStudioScreen />}
-          {app.screen === "complab" && <CompLabScreen />}
-          {app.screen === "signals" && <SignalScoutScreen />}
-          {app.screen === "people" && <PeopleScreen />}
-          {app.screen === "fub" && <FubScreen />}
-          {app.screen === "settings" && <SettingsScreen />}
-          </div>
-        </div>
+      <main className="lite-main">
+        <DashboardScreen />
       </main>
 
-      <NoteDialog />
-      <EmailDialog />
-      <DetailDialog />
+      <footer className="lite-foot">
+        Local-first · Follow Up Boss stays the system of record · Google and Obsidian are read in place · drafts and tasks only.
+      </footer>
 
       {app.toast && (
-        <div
-          role="status"
-          className={app.ui === "glass" ? "glass-toast" : undefined}
-          style={app.ui === "glass" ? undefined : {
-            position: "fixed",
-            left: 24,
-            bottom: 24,
-            zIndex: 80,
-            background: "var(--color-neutral-900)",
-            color: "var(--color-neutral-100)",
-            padding: "12px 18px",
-            fontSize: 14,
-            boxShadow: "var(--shadow-lg)",
-            maxWidth: 420,
-          }}
-        >
-          {app.toast}
-        </div>
+        <div role="status" className="lite-toast">{app.toast}</div>
       )}
     </div>
   );

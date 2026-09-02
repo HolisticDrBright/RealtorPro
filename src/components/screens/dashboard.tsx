@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useApp, type Screen } from "../app-state";
+import type { InboxItem } from "@/lib/google";
+import { useApp } from "../app-state";
 import { ErrorBox, Loading, postJson, useGet, errText } from "../modules/shared";
 
 /**
@@ -9,7 +10,8 @@ import { ErrorBox, Loading, postJson, useGet, errText } from "../modules/shared"
  * screen. Everything shown comes from local data (todos, calendar, buyers,
  * transactions, contacts, off-market records); the briefing can optionally be
  * written by Claude from those same facts. Cards can be dragged into any order;
- * the layout is remembered in this browser.
+ * the layout is remembered in this browser. This is the only screen in the
+ * dashboard-only build.
  */
 
 interface Todo { id: string; title: string; kind: string; done: boolean; contactName?: string | null; notes?: string | null }
@@ -34,6 +36,9 @@ interface Dash {
   plan: { headline: string; sections: { title: string; items: string[] }[]; provider: string };
   claudeConfigured: boolean;
   obsidianConfigured: boolean;
+  inbox: InboxItem[];
+  vault: { configured: boolean; vaultName: string | null; recent: { path: string; title: string; excerpt: string | null; modifiedAt: string | null; tags: string[]; uri: string }[]; tasks: { text: string; note: string; uri: string }[]; changed: boolean };
+  google: { configured: boolean; connected: boolean; email: string | null; error: string | null };
 }
 
 const money = (n: number) => "$" + Math.round(n).toLocaleString("en-US");
@@ -41,11 +46,11 @@ const time = (iso: string) => new Date(iso).toLocaleTimeString("en-US", { hour: 
 const dayLabel = (iso: string) => new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 
 /** Card ids in their default order, with the number of grid columns (of 6) each spans. */
-type CardId = "briefing" | "priorities" | "calls" | "calendar" | "ytd" | "transactions" | "buyers" | "offmarket" | "contacts";
-const DEFAULT_ORDER: CardId[] = ["briefing", "priorities", "calls", "calendar", "ytd", "transactions", "buyers", "offmarket", "contacts"];
-const SPAN: Record<CardId, number> = { briefing: 6, priorities: 2, calls: 2, calendar: 2, ytd: 3, transactions: 3, buyers: 3, offmarket: 3, contacts: 6 };
-const LABEL: Record<CardId, string> = { briefing: "Daily briefing", priorities: "Priority tasks", calls: "Calls", calendar: "Calendar", ytd: "Year to date", transactions: "Transactions", buyers: "Buyers", offmarket: "Off-market", contacts: "Contacts" };
-const ORDER_KEY = "agentos.dashboard.order.v1";
+type CardId = "briefing" | "priorities" | "calls" | "calendar" | "inbox" | "vault" | "ytd" | "transactions" | "buyers" | "offmarket" | "contacts";
+const DEFAULT_ORDER: CardId[] = ["briefing", "priorities", "calls", "calendar", "inbox", "vault", "ytd", "transactions", "buyers", "offmarket", "contacts"];
+const SPAN: Record<CardId, number> = { briefing: 6, priorities: 2, calls: 2, calendar: 2, inbox: 3, vault: 3, ytd: 3, transactions: 3, buyers: 3, offmarket: 3, contacts: 6 };
+const LABEL: Record<CardId, string> = { briefing: "Daily briefing", priorities: "Priority tasks", calls: "Calls", calendar: "Calendar", inbox: "Inbox", vault: "Obsidian", ytd: "Year to date", transactions: "Transactions", buyers: "Buyers", offmarket: "Off-market", contacts: "Contacts" };
+const ORDER_KEY = "agentos.dashboard.order.v2";
 
 /** Persisted card order (localStorage, per browser). Unknown ids are dropped, missing ids appended. */
 function useCardOrder() {
@@ -98,6 +103,15 @@ export function DashboardScreen() {
   const [dragging, setDragging] = useState<CardId | null>(null);
   const dragRef = useRef<CardId | null>(null);
   const [over, setOver] = useState<CardId | null>(null);
+
+  // Keep the page current: refresh every 60s while visible and whenever the
+  // window regains focus (vault edits and new mail show up without a reload).
+  useEffect(() => {
+    const tick = () => { if (document.visibilityState === "visible") reload(); };
+    const id = window.setInterval(tick, 60_000);
+    window.addEventListener("focus", tick);
+    return () => { window.clearInterval(id); window.removeEventListener("focus", tick); };
+  }, [reload]);
 
   async function toggle(t: Todo) {
     await postPatch(`/api/todos/${t.id}`, { done: !t.done });
@@ -214,7 +228,7 @@ export function DashboardScreen() {
             <div className="glass-kicker">Work calendar</div>
             <div className="glass-title">Today</div>
           </div>
-          <span className="glass-pill" style={{ marginLeft: "auto" }}>Local · .ics import</span>
+          <span className="glass-pill" style={{ marginLeft: "auto" }}>{data.google.connected ? "Google + local" : "Local · .ics import"}</span>
         </div>
         {data.todayEvents.length === 0 && <Muted>Nothing on the calendar today.</Muted>}
         {data.todayEvents.map((e) => (
@@ -235,7 +249,73 @@ export function DashboardScreen() {
             ))}
           </>
         )}
-        <Muted small>Gmail and Outlook can be imported as .ics today; live account sync is a connector you approve separately.</Muted>
+        <Muted small>{data.google.connected ? `Google Calendar (${data.google.email ?? "connected"}) is mirrored read-only every couple of minutes.` : "Connect Google above to pull your calendar; Outlook exports can be imported as .ics."}</Muted>
+      </>
+    ),
+    inbox: (
+      <>
+        <div className="glass-kicker">Inbox · Gmail</div>
+        <div className="glass-title">{data.google.connected ? `${data.inbox.length} from the last day` : "Not connected"}</div>
+        {!data.google.connected && (
+          <Muted>
+            {data.google.configured
+              ? <>Read-only access to your calendar and inbox subjects. <a href="/api/google/auth" style={{ color: "var(--color-accent-700)", fontWeight: 600 }}>Connect Google</a> to include them in the briefing.</>
+              : "Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env (see .env.example), restart, then connect from the top bar."}
+          </Muted>
+        )}
+        {data.google.error && <Muted>Google: {data.google.error}</Muted>}
+        {data.google.connected && data.inbox.length === 0 && !data.google.error && <Muted>Nothing new in the inbox today.</Muted>}
+        {data.inbox.map((m) => (
+          <div key={m.id} className="glass-row">
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+                <span style={{ fontWeight: m.unread ? 700 : 600, fontSize: 14.5, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.subject}</span>
+                {m.important && <span className="glass-pill accent" style={{ fontSize: 10 }}>flagged</span>}
+                {m.unread && <span className="glass-pill" style={{ fontSize: 10 }}>unread</span>}
+              </div>
+              <div className="text-muted" style={{ fontSize: 13 }}>{m.from}{m.receivedAt ? ` · ${time(m.receivedAt)}` : ""}</div>
+              {m.snippet && <div className="text-muted" style={{ fontSize: 12.5, marginTop: 2 }}>{m.snippet}</div>}
+            </div>
+            {m.threadId && <a className="glass-btn" style={{ padding: "4px 10px", fontSize: 12, textDecoration: "none" }} href={`https://mail.google.com/mail/u/0/#inbox/${m.threadId}`} target="_blank" rel="noreferrer">Open</a>}
+          </div>
+        ))}
+        {data.google.connected && <Muted small>Subjects and snippets only — AgentOS never reads full bodies, never sends mail, and never marks anything read.</Muted>}
+      </>
+    ),
+    vault: (
+      <>
+        <div className="glass-kicker">Obsidian · {data.vault.vaultName ?? "vault"}</div>
+        <div className="glass-title">{data.vault.configured ? `${data.vault.tasks.length} open task${data.vault.tasks.length === 1 ? "" : "s"} · ${data.vault.recent.length} recent notes` : "Not linked"}</div>
+        {!data.vault.configured && <Muted>Set OBSIDIAN_VAULT_DIR in .env to your vault folder and restart. Notes are read in place; changes made in Obsidian (by you or by Claude) appear here automatically.</Muted>}
+        {data.vault.tasks.length > 0 && (
+          <>
+            <div className="glass-section-title">From your notes</div>
+            {data.vault.tasks.map((t, i) => (
+              <div key={i} className="glass-row" style={{ alignItems: "baseline" }}>
+                <span style={{ fontWeight: 800, color: "var(--color-accent-700)" }}>☐</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14.5, fontWeight: 500 }}>{t.text}</div>
+                  <a className="text-muted" href={t.uri} style={{ fontSize: 12.5, color: "inherit" }}>{t.note}</a>
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+        {data.vault.recent.length > 0 && (
+          <>
+            <div className="glass-section-title" style={{ marginTop: data.vault.tasks.length ? 12 : 0 }}>Recently edited</div>
+            {data.vault.recent.map((n) => (
+              <div key={n.path} className="glass-row">
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <a href={n.uri} style={{ fontWeight: 600, fontSize: 14.5, color: "inherit", textDecoration: "none" }}>{n.title}</a>
+                  <div className="text-muted" style={{ fontSize: 12.5 }}>{[n.modifiedAt ? dayLabel(n.modifiedAt) + " " + time(n.modifiedAt) : null, n.path].filter(Boolean).join(" · ")}</div>
+                  {n.excerpt && <div className="text-muted" style={{ fontSize: 12.5, marginTop: 2, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{n.excerpt}</div>}
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+        {data.vault.configured && <Muted small>Open tasks come from today’s daily note, notes tagged #agentos, and the AgentOS folder. Links open in Obsidian.</Muted>}
       </>
     ),
     ytd: (
@@ -278,7 +358,6 @@ export function DashboardScreen() {
             <div style={{ display: "flex", gap: 8, alignItems: "center", width: "100%" }}>
               <span className={`glass-pill ${b.temperature === "hot" ? "accent" : ""}`}>{b.temperature}</span>
               <strong style={{ fontSize: 14.5, flex: 1 }}>{b.name}</strong>
-              <button className="glass-btn" style={{ padding: "4px 10px", fontSize: 12 }} onClick={() => { app.pickBuyer(b.id); app.goto("scout" as Screen); }}>Open in Buyer Scout</button>
             </div>
             <div className="text-muted" style={{ fontSize: 13 }}>{b.ceiling ?? "Ceiling [TBD — source required]"} · {b.areas.join(", ") || "areas TBD"}</div>
             <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
@@ -313,10 +392,10 @@ export function DashboardScreen() {
         <div className="glass-kicker">Contacts</div>
         <div className="glass-title">Who to keep close</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
-          <ContactList title="Hot buyers" list={data.contacts.hotBuyers} accent onOpen={(id) => app.goto("people", id)} />
-          <ContactList title="Warm buyers" list={data.contacts.warmBuyers} onOpen={(id) => app.goto("people", id)} />
-          <ContactList title="Sellers" list={data.contacts.sellers} onOpen={(id) => app.goto("people", id)} />
-          <ContactList title="Past clients" list={data.contacts.pastClients} onOpen={(id) => app.goto("people", id)} />
+          <ContactList title="Hot buyers" list={data.contacts.hotBuyers} accent />
+          <ContactList title="Warm buyers" list={data.contacts.warmBuyers} />
+          <ContactList title="Sellers" list={data.contacts.sellers} />
+          <ContactList title="Past clients" list={data.contacts.pastClients} />
         </div>
       </>
     ),
@@ -419,16 +498,19 @@ function TodoRow({ t, onToggle, accent }: { t: Todo; onToggle: (t: Todo) => void
   );
 }
 
-function ContactList({ title, list, accent, onOpen }: { title: string; list: Contact[]; accent?: boolean; onOpen: (id: string) => void }) {
+function ContactList({ title, list, accent }: { title: string; list: Contact[]; accent?: boolean }) {
   return (
     <div>
       <div className="glass-section-title" style={{ color: accent ? "var(--color-accent)" : undefined }}>{title} · {list.length}</div>
       {list.length === 0 && <Muted small>None yet.</Muted>}
       {list.map((c) => (
-        <button key={c.id} onClick={() => onOpen(c.id)} style={{ display: "block", width: "100%", textAlign: "left", font: "inherit", border: "none", background: "transparent", cursor: "pointer", padding: "6px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+        <div key={c.id} style={{ padding: "6px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
           <div style={{ fontWeight: 600, fontSize: 14 }}>{c.name}</div>
-          <div className="text-muted" style={{ fontSize: 12.5 }}>{[c.stage, c.nextStep, c.phone].filter(Boolean).join(" · ")}</div>
-        </button>
+          <div className="text-muted" style={{ fontSize: 12.5 }}>
+            {[c.stage, c.nextStep].filter(Boolean).join(" · ")}
+            {c.phone && <> · <a href={`tel:${c.phone.replace(/[^\d+]/g, "")}`} style={{ color: "inherit" }}>{c.phone}</a></>}
+          </div>
+        </div>
       ))}
     </div>
   );

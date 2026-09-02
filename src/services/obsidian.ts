@@ -6,7 +6,7 @@ import { desc, eq, inArray, like, or } from "drizzle-orm";
 import { db } from "@/db";
 import { contacts, properties } from "@/db/schema";
 import { vaultNotes } from "@/db/schema.vault";
-import { linkNote, parseNote, shouldIndex } from "@/lib/obsidian";
+import { extractOpenTasks, isDailyNoteFor, linkNote, obsidianUri, parseNote, shouldIndex } from "@/lib/obsidian";
 import { AppError } from "@/lib/errors";
 import { writeAudit } from "@/lib/audit";
 
@@ -116,4 +116,66 @@ export function writeVaultNote(title: string, content: string, subfolder?: strin
   const rel = path.relative(cfg.dir, file).replace(/\\/g, "/");
   writeAudit({ action: "obsidian.write", metadata: { path: rel } });
   return { path: rel };
+}
+
+// ── Live view for the dashboard ────────────────────────────────────────────
+
+/**
+ * Cheap change detection: compare every note's mtime/size to what was indexed.
+ * Re-indexes only when something differs, so edits made in Obsidian (by you
+ * or by Claude) show up on the next dashboard load without a manual step.
+ */
+export function indexVaultIfChanged(): { changed: boolean; total: number } {
+  const cfg = vaultConfig();
+  if (!cfg.dir || !cfg.exists) return { changed: false, total: 0 };
+  const indexed = new Map(db.select({ path: vaultNotes.path, modifiedAt: vaultNotes.modifiedAt }).from(vaultNotes).all().map((n) => [n.path, n.modifiedAt]));
+  let changed = false;
+  let total = 0;
+  for (const rel of walk(cfg.dir)) {
+    if (!shouldIndex(rel, cfg.include, cfg.exclude)) continue;
+    total++;
+    const prev = indexed.get(rel);
+    if (prev === undefined) { changed = true; break; }
+    const m = fs.statSync(path.join(cfg.dir, rel)).mtime.toISOString();
+    if (m !== prev) { changed = true; break; }
+    indexed.delete(rel);
+  }
+  if (!changed && indexed.size > 0) changed = true; // notes were deleted
+  if (changed) indexVault();
+  return { changed, total };
+}
+
+export interface VaultToday {
+  configured: boolean;
+  vaultName: string | null;
+  recent: { path: string; title: string; excerpt: string | null; modifiedAt: string | null; tags: string[]; uri: string; contactId: string | null }[];
+  tasks: { text: string; note: string; uri: string }[];
+  changed: boolean;
+}
+
+/** Recently edited notes + open checkbox tasks from today's daily note and the AgentOS folder. */
+export function vaultToday(ymd: string): VaultToday {
+  const cfg = vaultConfig();
+  if (!cfg.dir || !cfg.exists) return { configured: false, vaultName: null, recent: [], tasks: [], changed: false };
+  const { changed } = indexVaultIfChanged();
+  const vaultName = path.basename(cfg.dir);
+  const all = db.select().from(vaultNotes).orderBy(desc(vaultNotes.modifiedAt)).all();
+  const recent = all.slice(0, 6).map((n) => ({ path: n.path, title: n.title, excerpt: n.excerpt, modifiedAt: n.modifiedAt, tags: n.tags ?? [], uri: obsidianUri(vaultName, n.path), contactId: n.contactId }));
+  const dayAgo = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  const candidates = all.filter((n) =>
+    isDailyNoteFor(n.path, ymd) ||
+    (n.tags ?? []).some((t) => /^agentos(\/|$)|^today$/.test(t)) ||
+    (n.path.toLowerCase().startsWith(cfg.writeFolder.toLowerCase() + "/") && (n.modifiedAt ?? "") >= dayAgo),
+  ).slice(0, 10);
+  const tasks: VaultToday["tasks"] = [];
+  for (const n of candidates) {
+    let body = "";
+    try { body = fs.readFileSync(path.join(cfg.dir, n.path), "utf8"); } catch { continue; }
+    for (const text of extractOpenTasks(body)) {
+      tasks.push({ text, note: n.title, uri: obsidianUri(vaultName, n.path) });
+      if (tasks.length >= 12) break;
+    }
+    if (tasks.length >= 12) break;
+  }
+  return { configured: true, vaultName, recent, tasks, changed };
 }

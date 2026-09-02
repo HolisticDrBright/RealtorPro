@@ -254,6 +254,39 @@ curl -X POST localhost:3000/api/rent-roll/import -H 'content-type: application/j
 
 ---
 
+## Dashboard-only build (this branch: `claude/agentos-dashboard-lite`)
+
+A smaller, flat, minimal version with **only the dashboard**: no sidebar, no
+other screens, same local database and API. It keeps the drag-to-rearrange
+cards and adds two live sources for the briefing:
+
+| Source | Set in `.env` | What it does |
+| --- | --- | --- |
+| **Claude** | `ANTHROPIC_API_KEY` | *Ask Claude for today's game plan* writes the briefing from the facts on the page (local data + calendar + inbox subjects + vault tasks). |
+| **Obsidian** | `OBSIDIAN_VAULT_DIR` | The **Obsidian** card shows open `- [ ]` tasks from today's daily note, notes tagged `#agentos`, and the `AgentOS/` folder, plus recently edited notes with `obsidian://` links. The vault is re-indexed automatically whenever a file changes, so **edits Claude (or you) make in Obsidian appear on the next refresh** (every 60 s while the tab is visible, and on focus). *Save game plan to Obsidian* writes into `AgentOS/Game plans/`. |
+| **Google Calendar + Gmail** | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | **Connect Google** in the top bar runs a read-only OAuth consent (`calendar.readonly`, `gmail.readonly`). Calendar events are mirrored into the local calendar (source `google`); the **Inbox** card shows the last day's subjects/snippets (never bodies) and both feed the briefing. Tokens live in `workspace/google-tokens.json`. AgentOS cannot send mail or change events. |
+
+Google setup, once: Google Cloud Console → *APIs & Services* → enable **Google
+Calendar API** and **Gmail API** → *Credentials* → **OAuth client ID** (Web
+application) with redirect URI `http://localhost:3000/api/google/callback` →
+paste the id/secret into `.env` → restart → **Connect Google**. While the
+OAuth consent screen is in "Testing", add your own Google account as a test
+user.
+
+Run it:
+
+```bash
+git checkout claude/agentos-dashboard-lite
+npm install
+npm run setup
+npm run dev
+```
+
+Endpoints added: `GET /api/google/auth`, `GET /api/google/callback`,
+`GET /api/google/status`, `POST /api/google/sync`, `POST /api/google/disconnect`.
+`GET /api/dashboard` now returns `inbox`, `vault` and `google` alongside the
+existing data.
+
 ## Live data — Follow Up Boss, Claude and your Obsidian vault
 
 On the `claude/agentos-live-data` branch every screen reads from the local

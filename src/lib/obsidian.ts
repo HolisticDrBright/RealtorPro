@@ -106,3 +106,24 @@ export function shouldIndex(relPath: string, include: string[] = [], exclude: st
   if (include.length > 0 && !include.some((i) => i && p.startsWith(i.toLowerCase().replace(/\/$/, "") + "/"))) return false;
   return p.endsWith(".md");
 }
+
+/** Open checkbox tasks (`- [ ] …`) in a note body, in order. Completed boxes are skipped. */
+export function extractOpenTasks(body: string, limit = 20): string[] {
+  const out: string[] = [];
+  for (const line of body.split(/\r?\n/)) {
+    const m = line.match(/^\s*(?:[-*+]|\d+[.)])\s+\[\s\]\s+(.+?)\s*$/);
+    if (m) out.push(m[1].replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, a, b) => b ?? a));
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+/** Deep link that opens a note in the Obsidian app on this machine. */
+export function obsidianUri(vaultName: string, relPath: string): string {
+  return `obsidian://open?vault=${encodeURIComponent(vaultName)}&file=${encodeURIComponent(relPath.replace(/\.md$/i, ""))}`;
+}
+
+/** True when a note looks like today's daily note (filename contains YYYY-MM-DD). */
+export function isDailyNoteFor(relPath: string, ymd: string): boolean {
+  return relPath.replace(/\\/g, "/").split("/").pop()?.includes(ymd) ?? false;
+}

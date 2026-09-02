@@ -22,7 +22,7 @@ export function useGet<T>(url: string): { data: T | null; loading: boolean; erro
   const reload = useCallback(() => setNonce((n) => n + 1), []);
   useEffect(() => {
     let alive = true;
-    setLoading(true);
+    if (nonce === 0) setLoading(true); // reloads refresh in place, no spinner
     setError(null);
     fetch(url)
       .then(async (r) => {
