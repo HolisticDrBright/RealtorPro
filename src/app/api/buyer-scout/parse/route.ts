@@ -12,6 +12,7 @@ import { readJson } from "@/lib/api";
 import { scoutParseSchema } from "@/lib/validation";
 import { importMlsCsv, type MappedListing } from "@/lib/csv-mapping";
 import { extractListingsFromEmail, toScoringFacts } from "@/lib/scout";
+import { getLlmProvider } from "@/services/providers";
 import { buildScoringCriteria, scoreListing } from "@/lib/match-scoring";
 import { assessCriteria } from "@/lib/fair-housing";
 import { storeFile } from "@/lib/storage";
@@ -62,6 +63,23 @@ export async function POST(req: NextRequest) {
       listings = result.listings;
     } else {
       listings = extractListingsFromEmail(input.content);
+      // With Claude configured, use structured extraction for pasted alerts
+      // (falls back to the deterministic parser on any failure).
+      const llm = getLlmProvider();
+      if (llm.name === "anthropic") {
+        try {
+          const out = await llm.extract<{ listings?: Record<string, string>[] }>("listings", input.content);
+          const rows = (out.listings ?? []).filter((r) => r.address || r.price);
+          if (rows.length) {
+            listings = rows.map((r, rowIndex) => {
+              const fields: Record<string, string> = {};
+              for (const k of ["address", "price", "beds", "baths", "sqft", "mlsNumber", "remarks"]) if (r[k]) fields[k] = String(r[k]);
+              const missing = (["address", "price"] as const).filter((k) => !fields[k]);
+              return { fields, sourceMeta: { extractedBy: "claude" }, missing, rowIndex };
+            }) as MappedListing[];
+          }
+        } catch { /* keep deterministic result */ }
+      }
     }
 
     if (listings.length === 0) {

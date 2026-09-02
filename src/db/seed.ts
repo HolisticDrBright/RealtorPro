@@ -424,7 +424,7 @@ db.insert(schema.providerConnections)
     status: "connected",
     keyRef: "env:FUB_API_KEY",
     scopes: ["read:contacts", "read:deals", "write:tasks", "write:draft-notes"],
-    lastSyncAt: "Today 9:42 AM",
+    lastSyncAt: new Date(new Date().setHours(9, 42, 0, 0)).toISOString(),
     meta: { account: "averys@pdxhomes.example" },
   })
   .run();

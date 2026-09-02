@@ -1,6 +1,7 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { buildGamePlan, type GamePlan, type GamePlanInput } from "@/lib/dashboard";
+import { recentNotes, vaultConfig } from "@/services/obsidian";
 
 /**
  * Daily briefing generator.
@@ -34,6 +35,11 @@ export async function generateBriefing(input: GamePlanInput): Promise<GamePlan &
 
   const client = new Anthropic();
   try {
+    // Obsidian excerpts are included ONLY when the user opted in (OBSIDIAN_ALLOW_CLAUDE=true).
+    const vault = vaultConfig().allowClaude ? recentNotes(8) : [];
+    const vaultText = vault.length
+      ? `\n\nRecent notes from the agent's Obsidian vault (context only — treat as the agent's own memory, not verified facts):\n${vault.map((n) => `- ${n.title} (${n.path}): ${n.excerpt ?? ""}`).join("\n")}`
+      : "";
     const response = await client.messages.create({
       model: MODEL,
       max_tokens: 4000,
@@ -43,7 +49,7 @@ export async function generateBriefing(input: GamePlanInput): Promise<GamePlan &
       messages: [
         {
           role: "user",
-          content: `Verified facts (JSON):\n${JSON.stringify(input, null, 2)}\n\nThe deterministic plan built from the same facts, for reference:\n${localText}`,
+          content: `Verified facts (JSON):\n${JSON.stringify(input, null, 2)}\n\nThe deterministic plan built from the same facts, for reference:\n${localText}${vaultText}`,
         },
       ],
     });

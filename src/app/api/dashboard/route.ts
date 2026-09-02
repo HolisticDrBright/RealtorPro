@@ -1,5 +1,6 @@
 import { loadDashboard } from "@/services/dashboard";
 import { isClaudeConfigured } from "@/services/briefing";
+import { vaultStatus } from "@/services/obsidian";
 import { errorResponse, ok } from "@/lib/errors";
 
 export const runtime = "nodejs";
@@ -8,7 +9,7 @@ export const runtime = "nodejs";
 export async function GET() {
   try {
     const data = loadDashboard();
-    return ok({ ...data, claudeConfigured: isClaudeConfigured() });
+    return ok({ ...data, claudeConfigured: isClaudeConfigured(), obsidianConfigured: vaultStatus().exists });
   } catch (err) {
     return errorResponse(err);
   }

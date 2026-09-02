@@ -245,6 +245,40 @@ curl -X POST http://localhost:3000/api/exports -H 'content-type: application/jso
 
 ---
 
+## 7. Live data (branch `claude/agentos-live-data`)
+
+### `GET /api/integrations/status`
+Status of the three connections plus the agent profile and workspace size.
+```json
+{ "agent": { "name": "…" },
+  "fub": { "configured": false, "mock": true, "status": "disconnected", "lastSyncAt": null, "contactCount": 5, "fubLinkedContacts": 5, "log": [ … ] },
+  "claude": { "configured": false, "model": "claude-opus-5", "llmProvider": "mock" },
+  "obsidian": { "configured": true, "exists": true, "dirName": "MyVault", "writeFolder": "AgentOS", "noteCount": 120, "lastIndexedAt": "…", "allowClaude": false },
+  "dataMode": "demo", "workspaceBytes": 1234567 }
+```
+
+### `POST /api/fub/sync`
+Real pull when `FUB_API_KEY` is set: `/people`, `/tasks`, `/notes`, `/deals`,
+`/appointments` paginated (`limit=100&offset`), upserted **by FUB id**. Returns
+`{ mock, pulled: { contacts, tasks, notes, deals, appointments }, status, detail, lastSyncAt }`.
+Mock mode records a no-op sync event and says so.
+
+### `GET /api/contacts`
+All contacts with `openTasks` counts. `GET /api/contacts/:id/timeline` returns the
+contact plus a merged, newest-first timeline of notes, tasks, appointments, deals and
+linked Obsidian notes (`type: "vault"`, `source: "Obsidian · path (linked by …)"`).
+
+### `GET /api/buyer-criteria` · `GET /api/buyer-scout/matches`
+Criteria profiles now include the linked `contact`; matches include the `property`
+row and a `shortlisted` flag, de-duplicated by address (latest ranking wins).
+
+### Obsidian
+- `POST /api/obsidian/sync` — index or re-index the vault → `{ result: { added, updated, unchanged, removed, linked, total }, status }`.
+- `GET /api/obsidian/notes?contactId=…` · `?q=…` · (none) recent — indexed notes.
+- `POST /api/obsidian/write` `{ title, content, subfolder? }` — creates a new note under
+  `OBSIDIAN_WRITE_FOLDER` (never overwrites; `..` and absolute subfolders are rejected
+  with `unsafe_path`).
+
 ## Auditing
 
 Every import, generated draft, approval, export, and FUB write appends an entry

@@ -4,6 +4,7 @@ import { MockImageVideoProvider, MockLlmProvider } from "./mock-generation";
 import { OpenAiCompatibleLlm } from "./llm";
 import { HiggsfieldProvider } from "./image-video";
 import { FfmpegAssembler } from "./ffmpeg";
+import { AnthropicLlmProvider } from "./anthropic";
 
 /**
  * Provider factory. Selection is driven by env; the default everywhere is the
@@ -12,7 +13,9 @@ import { FfmpegAssembler } from "./ffmpeg";
  */
 
 export function getLlmProvider(): LlmProvider {
-  if ((process.env.AGENTOS_LLM_PROVIDER ?? "mock") === "openai-compatible") {
+  const sel = process.env.AGENTOS_LLM_PROVIDER ?? "mock";
+  if (sel === "anthropic" || sel === "claude") return new AnthropicLlmProvider();
+  if (sel === "openai-compatible") {
     return new OpenAiCompatibleLlm();
   }
   return new MockLlmProvider();

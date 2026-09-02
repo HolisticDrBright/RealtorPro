@@ -32,6 +32,7 @@ interface Dash {
   contacts: { hotBuyers: Contact[]; warmBuyers: Contact[]; sellers: Contact[]; pastClients: Contact[]; cold: Contact[] };
   plan: { headline: string; sections: { title: string; items: string[] }[]; provider: string };
   claudeConfigured: boolean;
+  obsidianConfigured: boolean;
 }
 
 const money = (n: number) => "$" + Math.round(n).toLocaleString("en-US");
@@ -59,6 +60,13 @@ export function DashboardScreen() {
       setBriefing(b);
       app.say(b.provider === "local" ? "Game plan built from today’s facts (add ANTHROPIC_API_KEY for Claude’s version)." : `Game plan written by ${b.provider}.`);
     } else app.say(errText(res.data));
+  }
+  async function saveToVault() {
+    if (!data) return;
+    const planText = briefing?.text ?? [data.plan.headline, ...data.plan.sections.map((s) => `## ${s.title}\n${s.items.map((i) => `- ${i}`).join("\n")}`)].join("\n\n");
+    const res = await postJson("/api/obsidian/write", { title: `Game plan ${data.today}`, content: planText, subfolder: "Game plans" });
+    if (res.ok) app.say(`Saved to your vault: ${(res.data as { path: string }).path}`);
+    else app.say(errText(res.data));
   }
   async function importList() {
     const res = await postJson("/api/todos", { text: importText });
@@ -102,6 +110,9 @@ export function DashboardScreen() {
           <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap", alignItems: "center" }}>
             <button className="glass-btn primary" onClick={askClaude} disabled={busy}>{busy ? "Writing…" : data.claudeConfigured ? "Ask Claude for today’s game plan" : "Build game plan"}</button>
             <button className="glass-btn" onClick={() => setShowImport((v) => !v)}>Paste today’s to-do list</button>
+            {data.obsidianConfigured && (
+              <button className="glass-btn" onClick={saveToVault} disabled={busy}>Save game plan to Obsidian</button>
+            )}
             <span className="text-muted" style={{ fontSize: 12.5 }}>{data.claudeConfigured ? "Claude uses only the facts shown here." : "Set ANTHROPIC_API_KEY to let Claude write it."}</span>
           </div>
           {showImport && (

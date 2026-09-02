@@ -132,6 +132,8 @@ workspace/
 
 ## Documentation
 
+- [`docs/USER-GUIDE.md`](./docs/USER-GUIDE.md) — **for agents:** what every tab does, how to use it, and where it fits in the day.
+
 - [`docs/API.md`](./docs/API.md) — base endpoints with request/response examples.
 - [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — the fact ledger, provider
   adapters, local storage, and the future hosted webhook relay.
@@ -248,6 +250,40 @@ curl -X POST localhost:3000/api/rent-roll/import -H 'content-type: application/j
 ```
 
 ---
+
+## Live data — Follow Up Boss, Claude and your Obsidian vault
+
+On the `claude/agentos-live-data` branch every screen reads from the local
+database instead of the ported demo data, and three connections populate it.
+With nothing configured the app still runs on the seeded fictional database and
+labels it **Demo data** in the header, Settings and the Follow Up Boss tab.
+
+| Connection | `.env` | What happens |
+| --- | --- | --- |
+| **Follow Up Boss** | `FUB_API_KEY` | **Follow Up Boss → Sync now** pulls people, tasks, notes, deals and appointments (paginated) and upserts them **by FUB id** into `contacts`, `tasks`, `notes`, `appointments`, `deals` and mirrors deals into `transactions` for the dashboard. Writes back are limited to tasks and draft notes, one per button press. |
+| **Claude** | `ANTHROPIC_API_KEY`, `AGENTOS_LLM_PROVIDER=anthropic` | Daily game plan on the Dashboard; structured extraction of pasted MLS alert emails in Buyer Scout; fact-restricted drafting in Listing Studio through the `LlmProvider` interface (`src/services/providers/anthropic.ts`). |
+| **Obsidian** | `OBSIDIAN_VAULT_DIR` (+ `OBSIDIAN_WRITE_FOLDER`, `OBSIDIAN_INCLUDE_FOLDERS`, `OBSIDIAN_EXCLUDE_FOLDERS`, `OBSIDIAN_ALLOW_CLAUDE`) | **Settings → Re-index vault** indexes every `.md` (frontmatter, tags, wikilinks, excerpt, hash) into `vault_notes` and links notes to contacts/properties by frontmatter `contact:` / `fubId:` / `property:`, exact title, or `[[wikilink]]` — never fuzzy. Linked notes appear on the contact timeline in People & Deals. **Save game plan to Obsidian** writes a new note under `AgentOS/Game plans/`; AgentOS never edits or deletes existing notes. Vault excerpts reach Claude only when `OBSIDIAN_ALLOW_CLAUDE=true`. |
+
+Steps (Mac Terminal or Windows PowerShell — one line at a time):
+
+```bash
+git clone https://github.com/HolisticDrBright/RealtorPro
+cd RealtorPro
+git checkout claude/agentos-live-data
+npm install
+copy .env.example .env      # Windows   (macOS: cp .env.example .env)
+# edit .env: FUB_API_KEY, ANTHROPIC_API_KEY, AGENTOS_LLM_PROVIDER=anthropic, OBSIDIAN_VAULT_DIR
+npm run setup
+npm run dev
+```
+
+Then open http://localhost:3000 → **Follow Up Boss → Sync now**, **Settings → Re-index
+vault**, **Dashboard → Ask Claude for today's game plan**. Run `npm run db:reset`
+to wipe the local mirror; it never touches FUB or the vault.
+
+Endpoints added on this branch: `GET /api/integrations/status`, `GET /api/contacts`,
+`GET /api/contacts/:id/timeline`, `POST /api/obsidian/sync`, `GET /api/obsidian/notes`,
+`POST /api/obsidian/write` (see [`docs/API.md`](./docs/API.md)).
 
 ## Known limitations
 

@@ -97,6 +97,11 @@ export const contacts = sqliteTable(
     syncStatus: text("sync_status").default("Synced"),
     // hot | warm | cold — agent-set relationship temperature for the dashboard.
     temperature: text("temperature").default("warm"),
+    // Mirrored from Follow Up Boss on sync.
+    tags: json<string[]>("tags").default([]),
+    source: text("source"),
+    assignedTo: text("assigned_to"),
+    lastActivityAt: text("last_activity_at"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -113,6 +118,10 @@ export const deals = sqliteTable("deals", {
   price: text("price"),
   riskFlag: text("risk_flag"), // high | med | null
   riskIssue: text("risk_issue"),
+  // Mirrored from FUB deals.
+  dealStatus: text("deal_status"), // Active | Won | Lost | ...
+  pipeline: text("pipeline"),
+  closeDate: text("close_date"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
@@ -136,6 +145,7 @@ export const notes = sqliteTable("notes", {
   id: id(),
   fubId: text("fub_id"),
   contactId: text("contact_id").references(() => contacts.id),
+  subject: text("subject"),
   body: text("body").notNull(),
   // Notes AgentOS writes back are ALWAYS drafts until the agent sends in FUB.
   isDraft: integer("is_draft", { mode: "boolean" }).notNull().default(true),
@@ -153,6 +163,8 @@ export const appointments = sqliteTable("appointments", {
   location: text("location"),
   type: text("type"),
   startsAt: text("starts_at"),
+  endsAt: text("ends_at"),
+  description: text("description"),
   createdAt: createdAt(),
 });
 

@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { buyerCriteriaProfiles } from "@/db/schema";
+import { buyerCriteriaProfiles, contacts } from "@/db/schema";
 import { readJson } from "@/lib/api";
 import { buyerCriteriaSchema } from "@/lib/validation";
 import { assessCriteria } from "@/lib/fair-housing";
@@ -11,15 +11,18 @@ import { errorResponse, ok, AppError } from "@/lib/errors";
 
 export const runtime = "nodejs";
 
-/** List buyer criteria profiles (optionally by contact). */
+/** List buyer criteria profiles (optionally by contact), with the linked contact. */
 export async function GET(req: NextRequest) {
   try {
     const contactId = req.nextUrl.searchParams.get("contactId");
-    const q = db.select().from(buyerCriteriaProfiles);
+    const q = db
+      .select({ profile: buyerCriteriaProfiles, contact: { id: contacts.id, name: contacts.name, fubId: contacts.fubId, phone: contacts.phone, email: contacts.email, stage: contacts.stage, temperature: contacts.temperature, lastActivityAt: contacts.lastActivityAt } })
+      .from(buyerCriteriaProfiles)
+      .leftJoin(contacts, eq(contacts.id, buyerCriteriaProfiles.contactId));
     const rows = contactId
       ? q.where(eq(buyerCriteriaProfiles.contactId, contactId)).all()
       : q.orderBy(desc(buyerCriteriaProfiles.createdAt)).all();
-    return ok({ profiles: rows });
+    return ok({ profiles: rows.map((r) => ({ ...r.profile, contact: r.contact?.id ? r.contact : null })) });
   } catch (err) {
     return errorResponse(err);
   }
