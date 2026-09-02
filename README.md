@@ -1,4 +1,4 @@
-# Vanessa Real Estate — Command Center
+# Vanessa Bukowski · SERHANT. — Command Center
 
 A luxury real estate operating system for one agent: CRM, tasks, call list,
 buyers with criteria, seller pipeline, listings, Kanban sales pipeline, escrow

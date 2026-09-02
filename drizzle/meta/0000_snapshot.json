@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "84127dfa-cbe9-481a-8909-48a3a2a4625d",
+  "id": "15a84441-be08-43fe-972e-4cbb38c017b4",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "activities": {
@@ -1719,7 +1719,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'Vanessa Smith'"
+          "default": "'Vanessa Bukowski'"
         },
         "title": {
           "name": "title",
@@ -1735,7 +1735,7 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false,
-          "default": "'Compass'"
+          "default": "'SERHANT.'"
         },
         "annual_goal": {
           "name": "annual_goal",

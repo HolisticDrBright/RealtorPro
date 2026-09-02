@@ -110,7 +110,7 @@ export function loadDashboard(now = new Date()) {
   const unread = db.select().from(s.notifications).where(eq(s.notifications.readAt, null as unknown as string)).all().length;
 
   return {
-    now: now.toISOString(), today, greeting: `${greeting(now)}, ${(settings?.agentName ?? "Vanessa").split(" ")[0]}`, agent: { name: settings?.agentName ?? "Vanessa Smith", title: settings?.title ?? "", brokerage: settings?.brokerage ?? "" },
+    now: now.toISOString(), today, greeting: `${greeting(now)}, ${(settings?.agentName ?? "Vanessa").split(" ")[0]}`, agent: { name: settings?.agentName ?? "Vanessa Bukowski", title: settings?.title ?? "", brokerage: settings?.brokerage ?? "" },
     kpis: { ytd, pendingVolume, pendingGci, pendingNet, pendingCount: escrows.length, activeListingVolume, activeListingCount: activeListings.length, activeListingGci, pipeline, pipelineKanban },
     goal: { ...goalS, pendingNet, pipelineGci: pipeline.gci },
     monthly, priorities, schedule, callList, callStats, hotBuyers, listings: listingCards, escrows: escrowCards, matches, followUps, alerts, recent, unread,

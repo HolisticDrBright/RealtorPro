@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { api, label, telHref, smsHref, toast, useApi } from "@/lib/client";
 import { fmtMoney, pct } from "@/lib/calc";
 import { fmtDate, fmtTime, relative } from "@/lib/dates";
@@ -30,16 +30,68 @@ interface EscrowRow { id: string; address: string; city: string; purchasePrice: 
 
 const delta = (cur: number, prev: number) => (prev > 0 ? { pct: Math.round(((cur - prev) / prev) * 100), label: "vs last year" } : null);
 
+/* ---------- Rearrangeable layout: order is saved per browser, new blocks append, unknown ids drop. ---------- */
+const KPI_ORDER = ["kpi-volume", "kpi-count", "kpi-net", "kpi-pipeline", "goal", "kpi-pending", "kpi-active"];
+const CARD_ORDER = ["priorities", "schedule", "calls", "hotBuyers", "listings", "escrows", "chart", "goalTracker", "alerts", "recent", "matches"];
+
+function useLayoutOrder(key: string, defaults: string[]) {
+  const [ids, setIds] = useState(defaults);
+  useEffect(() => {
+    try {
+      const saved: unknown = JSON.parse(localStorage.getItem(key) ?? "null");
+      if (Array.isArray(saved)) setIds([...saved.filter((id) => typeof id === "string" && defaults.includes(id)), ...defaults.filter((id) => !saved.includes(id))]);
+    } catch { /* no saved layout */ }
+  }, [key, defaults]);
+  const move = useCallback((from: string, to: string) => setIds((prev) => {
+    const i = prev.indexOf(from), j = prev.indexOf(to);
+    if (i < 0 || j < 0 || i === j) return prev;
+    const next = [...prev]; next.splice(i, 1); next.splice(j, 0, from);
+    try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* storage unavailable */ }
+    return next;
+  }), [key]);
+  const reset = useCallback(() => { try { localStorage.removeItem(key); } catch { /* ignore */ } setIds(defaults); }, [key, defaults]);
+  return { ids, move, reset, custom: ids.join() !== defaults.join() };
+}
+
+interface DragState { drag: string | null; over: string | null; setDrag: (v: string | null) => void; setOver: (v: string | null) => void; onMove: (from: string, to: string) => void }
+
+/** A grid cell the user can pick up by its ⋮⋮ handle and drop onto another cell. Only the handle starts a drag, so lists inside keep their own drag behaviour and text stays selectable. */
+function Sortable({ id, className = "", state, children }: { id: string; className?: string; state: DragState; children: ReactNode }) {
+  const [armed, setArmed] = useState(false);
+  const isTarget = state.over === id && !!state.drag && state.drag !== id;
+  return (
+    <div
+      className={`sortable ${className} ${state.drag === id ? "dragging" : ""} ${isTarget ? "drop-target" : ""}`}
+      draggable={armed}
+      onDragStart={(e) => { if (!armed) return; e.stopPropagation(); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", id); state.setDrag(id); }}
+      onDragEnd={() => { state.setDrag(null); state.setOver(null); setArmed(false); }}
+      onDragOver={(e) => { if (state.drag && state.drag !== id) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (state.over !== id) state.setOver(id); } }}
+      onDragLeave={(e) => { if (state.over === id && !e.currentTarget.contains(e.relatedTarget as Node | null)) state.setOver(null); }}
+      onDrop={(e) => { if (!state.drag) return; e.preventDefault(); if (state.drag !== id) state.onMove(state.drag, id); state.setDrag(null); state.setOver(null); }}
+    >
+      <span className="drag-handle" role="button" tabIndex={0} title="Drag to move this box" aria-label={`Move ${id}`} onMouseDown={() => setArmed(true)} onMouseUp={() => setArmed(false)} onMouseLeave={() => { if (!state.drag) setArmed(false); }}>⋮⋮</span>
+      {children}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { data, loading, error, reload } = useApi<Dash>("/api/dashboard", { refreshMs: 60000 });
   const [order, setOrder] = useState<string[] | null>(null);
-  const [drag, setDrag] = useState<string | null>(null);
+  const [pdrag, setPdrag] = useState<string | null>(null);
   const [briefing, setBriefing] = useState<string | null>(null);
   const [briefBusy, setBriefBusy] = useState(false);
+  const kpiLayout = useLayoutOrder("cc.dashboard.kpis", KPI_ORDER);
+  const cardLayout = useLayoutOrder("cc.dashboard.cards", CARD_ORDER);
+  const [drag, setDrag] = useState<string | null>(null);
+  const [over, setOver] = useState<string | null>(null);
+  const kpiDrag: DragState = { drag, over, setDrag, setOver, onMove: kpiLayout.move };
+  const cardDrag: DragState = { drag, over, setDrag, setOver, onMove: cardLayout.move };
   if (loading) return <Loading rows={6} />;
   if (error || !data) return <ErrorBox message={error ?? "No data"} onRetry={reload} />;
   const k = data.kpis, g = data.goal;
   const prios = order ? [...data.priorities].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id)) : data.priorities;
+  const customLayout = kpiLayout.custom || cardLayout.custom;
 
   async function completePriority(p: PriorityItem, done: boolean) {
     if (p.taskId) { await api.update("tasks", p.taskId, { completedAt: done ? new Date().toISOString() : null }); toast(done ? "Task completed" : "Reopened"); }
@@ -57,36 +109,38 @@ export default function DashboardPage() {
     setBriefing(r.data.text);
   }
 
-  return (
-    <div className="space-y-5 fade-in">
-      <div className="flex items-end gap-4 flex-wrap">
-        <div><h1 className="text-[22px] font-semibold tracking-tight flex items-center gap-2">{data.greeting} <span className="text-gold" aria-hidden="true">☼</span></h1><div className="text-[13px] text-ink-3">{fmtDate(data.today, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}</div></div>
-      </div>
-
-      {/* Row 1 — KPIs */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4 2xl:grid-cols-8">
-        <Kpi label="YTD Sales Volume" value={fmtMoney(k.ytd.volume)} delta={delta(k.ytd.volume, k.ytd.lastYear.volume)} spark={data.monthly.map((m) => m.volume)} />
-        <Kpi label="YTD Closed Transactions" value={String(k.ytd.count)} delta={delta(k.ytd.count, k.ytd.lastYear.count)} spark={data.monthly.map((m) => m.net)} />
-        <Kpi label="YTD GCI / Net Income" value={fmtMoney(k.ytd.net)} sub={<span>GCI {fmtMoney(k.ytd.gci)}</span>} delta={delta(k.ytd.net, k.ytd.lastYear.net)} spark={data.monthly.map((m) => m.net)} />
-        <div className="2xl:order-last"><Kpi label="Pipeline Value" value={fmtMoney(k.pipeline.value)} sub={<span className="text-ok">Est. GCI {fmtMoney(k.pipeline.gci)}</span>} /></div>
-        <div className="card px-5 py-4 col-span-2 min-w-0">
+  // KPI strip — small tiles; the goal tile is double width. Users can reorder within the strip.
+  const kpis: Record<string, { cls?: string; node: ReactNode }> = {
+    "kpi-volume": { node: <Kpi label="YTD Sales Volume" value={fmtMoney(k.ytd.volume)} delta={delta(k.ytd.volume, k.ytd.lastYear.volume)} spark={data.monthly.map((m) => m.volume)} /> },
+    "kpi-count": { node: <Kpi label="YTD Closed Transactions" value={String(k.ytd.count)} delta={delta(k.ytd.count, k.ytd.lastYear.count)} spark={data.monthly.map((m) => m.net)} /> },
+    "kpi-net": { node: <Kpi label="YTD GCI / Net Income" value={fmtMoney(k.ytd.net)} sub={<span>GCI {fmtMoney(k.ytd.gci)}</span>} delta={delta(k.ytd.net, k.ytd.lastYear.net)} spark={data.monthly.map((m) => m.net)} /> },
+    "kpi-pipeline": { node: <Kpi label="Pipeline Value" value={fmtMoney(k.pipeline.value)} sub={<span className="text-ok">Est. GCI {fmtMoney(k.pipeline.gci)}</span>} /> },
+    goal: {
+      cls: "col-span-2",
+      node: (
+        <div className="card px-5 py-4 min-w-0">
           <div className="flex items-baseline gap-2 flex-wrap"><div className="kicker">Annual Income Goal</div><div className="ml-auto text-[18px] font-semibold tnum">{g.pct}%</div></div>
           <div className="mt-1.5 text-[22px] font-semibold tracking-tight tnum leading-none">{fmtMoney(g.current)} <span className="text-ink-3 font-normal">/ {fmtMoney(g.goal)}</span></div>
           <Progress pct={g.pct} className="mt-3" />
           <div className="grid grid-cols-3 gap-2 mt-3 text-[12px]"><div><div className="text-ink-3">Remaining</div><div className="font-medium tnum">{fmtMoney(g.remaining)}</div></div><div><div className="text-ink-3">Monthly required</div><div className="font-medium tnum">{fmtMoney(g.monthlyTarget)}</div></div><div><div className="text-ink-3">Projected year-end</div><div className="font-medium tnum">{fmtMoney(g.projectedYearEnd)}</div></div></div>
         </div>
-        <Kpi label="Pending Volume" value={fmtMoney(k.pendingVolume)} sub={<Link href="/transactions" className="link text-info">{k.pendingCount} transaction{k.pendingCount === 1 ? "" : "s"} · {fmtMoney(k.pendingNet)} net pending</Link>} />
-        <Kpi label="Active Listing Volume" value={fmtMoney(k.activeListingVolume)} sub={<Link href="/listings" className="link text-info">{k.activeListingCount} listing{k.activeListingCount === 1 ? "" : "s"}</Link>} />
-      </div>
+      ),
+    },
+    "kpi-pending": { node: <Kpi label="Pending Volume" value={fmtMoney(k.pendingVolume)} sub={<Link href="/transactions" className="link text-info">{k.pendingCount} transaction{k.pendingCount === 1 ? "" : "s"} · {fmtMoney(k.pendingNet)} net pending</Link>} /> },
+    "kpi-active": { node: <Kpi label="Active Listing Volume" value={fmtMoney(k.activeListingVolume)} sub={<Link href="/listings" className="link text-info">{k.activeListingCount} listing{k.activeListingCount === 1 ? "" : "s"}</Link>} /> },
+  };
 
-      {/* Row 2 — priorities · schedule · calls */}
-      <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-[1.25fr_0.8fr_1.4fr]">
+  // Cards — one flowing grid (6 columns at laptop width, 12 at desktop); each card declares how many it spans.
+  const cards: Record<string, { cls: string; node: ReactNode } | null> = {
+    priorities: {
+      cls: "lg:col-span-3 2xl:col-span-4",
+      node: (
         <Card title={<h2 className="card-title flex items-center gap-2">Today’s Priorities <span className="pill bg-crit text-white normal-case tracking-normal">{prios.length}</span></h2>} action={<span className="ml-auto flex items-center gap-3"><button className="card-link !ml-0 text-gold-ink" onClick={askClaude} disabled={briefBusy}>{briefBusy ? "Claude is writing…" : briefing ? "Refresh Claude briefing" : "✦ Ask Claude for a game plan"}</button><Link href="/tasks" className="card-link !ml-0">View all tasks →</Link></span>}>
           {briefing && <div className="mb-3 rounded-lg bg-gold-soft/70 p-3 text-[13px] whitespace-pre-wrap leading-relaxed"><div className="kicker text-gold-ink mb-1">Claude’s game plan</div>{briefing}</div>}
           {prios.length === 0 && <Empty title="Nothing urgent" body="No overdue tasks, deadlines or neglected hot buyers. Enjoy it — or add a task." action={<button className="btn btn-sm" onClick={() => quickAdd("tasks")}>+ Task</button>} />}
           <ul className="divide-y divide-line-2">
             {prios.map((p) => (
-              <li key={p.id} draggable onDragStart={() => setDrag(p.id)} onDragOver={(e) => e.preventDefault()} onDrop={() => { if (!drag || drag === p.id) return; const ids = prios.map((x) => x.id); const from = ids.indexOf(drag), to = ids.indexOf(p.id); ids.splice(from, 1); ids.splice(to, 0, drag); setOrder(ids); setDrag(null); }} className={`flex items-center gap-3 py-2.5 ${drag === p.id ? "dragging" : ""}`}>
+              <li key={p.id} draggable onDragStart={(e) => { e.stopPropagation(); setPdrag(p.id); }} onDragOver={(e) => { if (pdrag) e.preventDefault(); }} onDrop={(e) => { if (!pdrag) return; e.stopPropagation(); if (pdrag === p.id) return; const ids = prios.map((x) => x.id); const from = ids.indexOf(pdrag), to = ids.indexOf(p.id); ids.splice(from, 1); ids.splice(to, 0, pdrag); setOrder(ids); setPdrag(null); }} onDragEnd={() => setPdrag(null)} className={`flex items-center gap-3 py-2.5 ${pdrag === p.id ? "dragging" : ""}`}>
                 <button className="check" aria-label={`Complete ${p.title}`} onClick={() => completePriority(p, true)} />
                 <div className="flex-1 min-w-0">
                   {p.kind === "vault" ? <a href={p.href} className="text-[13.5px] font-medium hover:underline truncate block">{p.title}</a> : <Link href={p.href} className="text-[13.5px] font-medium hover:underline truncate block">{p.title}</Link>}
@@ -99,14 +153,22 @@ export default function DashboardPage() {
             ))}
           </ul>
         </Card>
-
+      ),
+    },
+    schedule: {
+      cls: "lg:col-span-3 2xl:col-span-3",
+      node: (
         <Card title="Today’s Schedule" action={<Link href="/calendar" className="card-link">View calendar →</Link>}>
           {data.schedule.today.length === 0 && <Empty title="No appointments today" action={<button className="btn btn-sm" onClick={() => quickAdd("appointments")}>+ Appointment</button>} />}
           <ul className="divide-y divide-line-2">{data.schedule.today.map((a) => <li key={a.id} className="flex gap-3 py-3"><div className="w-16 shrink-0 text-[13px] font-semibold tnum">{fmtTime(a.startsAt)}</div><div className="min-w-0"><div className="text-[13.5px] font-medium truncate">{a.title}</div><div className="text-[12px] text-ink-3 truncate">{[a.contactName, a.location ?? a.address].filter(Boolean).join(" · ")}</div></div></li>)}</ul>
           {data.schedule.tomorrow.length > 0 && <><div className="kicker mt-4 mb-1">Tomorrow</div><ul className="divide-y divide-line-2">{data.schedule.tomorrow.map((a) => <li key={a.id} className="flex gap-3 py-2"><div className="w-16 shrink-0 text-[12.5px] text-ink-3 tnum">{fmtTime(a.startsAt)}</div><div className="text-[12.5px] truncate">{a.title}</div></li>)}</ul></>}
         </Card>
-
-        <Card className="xl:col-span-2 2xl:col-span-1" title="Call List" action={<span className="ml-auto text-[12px] text-ink-3 tnum">{data.callStats.scheduled} Scheduled · {data.callStats.completed} Completed · {data.callStats.remaining} Remaining</span>}>
+      ),
+    },
+    calls: {
+      cls: "lg:col-span-6 2xl:col-span-5",
+      node: (
+        <Card title="Call List" action={<span className="ml-auto text-[12px] text-ink-3 tnum">{data.callStats.scheduled} Scheduled · {data.callStats.completed} Completed · {data.callStats.remaining} Remaining</span>}>
           {data.callList.length === 0 && <Empty title="No calls scheduled today" action={<button className="btn btn-sm" onClick={() => quickAdd("calls")}>+ Call</button>} />}
           <ul className="divide-y divide-line-2">
             {data.callList.filter((c) => c.status !== "completed").slice(0, 6).map((c) => (
@@ -126,10 +188,11 @@ export default function DashboardPage() {
           </ul>
           <div className="flex items-center mt-2"><Link href="/calls" className="card-link ml-0">View full call list →</Link><Link href="/calls?dialer=1" className="btn btn-sm ml-auto">▷ Start Power Dialer</Link></div>
         </Card>
-      </div>
-
-      {/* Row 3 — hot buyers · active listings · in escrow */}
-      <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+      ),
+    },
+    hotBuyers: {
+      cls: "lg:col-span-3 2xl:col-span-4",
+      node: (
         <Card title={<h2 className="card-title">Hot Buyers <span className="text-crit" aria-hidden="true">●</span></h2>} action={<Link href="/buyers" className="card-link">View all →</Link>}>
           <div className="grid grid-cols-[1fr_auto_auto] text-[11px] text-ink-3 uppercase tracking-wide pb-1 gap-3"><span /><span>Last contact</span><span>Next follow-up</span></div>
           <ul className="divide-y divide-line-2">
@@ -143,6 +206,11 @@ export default function DashboardPage() {
           </ul>
           {data.hotBuyers.length === 0 && <Empty title="No active buyers" action={<button className="btn btn-sm" onClick={() => quickAdd("buyers")}>+ Buyer</button>} />}
         </Card>
+      ),
+    },
+    listings: {
+      cls: "lg:col-span-3 2xl:col-span-4",
+      node: (
         <Card title="Active Listings" action={<Link href="/listings" className="card-link">View all →</Link>}>
           <ul className="divide-y divide-line-2">
             {data.listings.slice(0, 3).map((l) => (
@@ -151,6 +219,11 @@ export default function DashboardPage() {
           </ul>
           {data.listings.length === 0 && <Empty title="No active listings" action={<button className="btn btn-sm" onClick={() => quickAdd("listings")}>+ Listing</button>} />}
         </Card>
+      ),
+    },
+    escrows: {
+      cls: "lg:col-span-3 2xl:col-span-4",
+      node: (
         <Card title="In Escrow" action={<Link href="/transactions" className="card-link">View all →</Link>}>
           <ul className="divide-y divide-line-2">
             {data.escrows.slice(0, 3).map((e) => (
@@ -159,13 +232,19 @@ export default function DashboardPage() {
           </ul>
           {data.escrows.length === 0 && <Empty title="Nothing in escrow" />}
         </Card>
-      </div>
-
-      {/* Row 4 — chart · goal · alerts · activity */}
-      <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-[1.3fr_1fr_1fr_0.9fr]">
+      ),
+    },
+    chart: {
+      cls: "lg:col-span-3 2xl:col-span-4",
+      node: (
         <Card title="YTD Sales Performance" action={<span className="card-link">This Year</span>}>
           <Bars data={data.monthly} series={[{ key: "volume", label: "Sales Volume", color: "#18181b" }, { key: "net", label: "Net Income", color: "#b8962e" }]} />
         </Card>
+      ),
+    },
+    goalTracker: {
+      cls: "lg:col-span-3 2xl:col-span-3",
+      node: (
         <Card title="Income Goal Tracker">
           <div className="flex gap-5 items-center">
             <Donut pct={g.pct} label="of your goal" />
@@ -174,20 +253,54 @@ export default function DashboardPage() {
             </dl>
           </div>
         </Card>
+      ),
+    },
+    alerts: {
+      cls: "lg:col-span-3 2xl:col-span-3",
+      node: (
         <Card title="Smart Alerts" action={<Link href="/followups" className="card-link">View all alerts →</Link>}>
           <ul className="space-y-2.5">{data.alerts.slice(0, 7).map((a, i) => <li key={i} className="flex items-start gap-2.5 text-[12.5px]"><span className={`mt-1 w-2 h-2 rounded-full shrink-0 ${a.kind === "critical" ? "bg-crit" : a.kind === "warn" ? "bg-warn" : a.kind === "ok" ? "bg-ok" : "bg-info"}`} /><Link href={a.href} className="hover:underline">{a.text}</Link></li>)}</ul>
         </Card>
+      ),
+    },
+    recent: {
+      cls: "lg:col-span-3 2xl:col-span-2",
+      node: (
         <Card title="Recent Activity">
           <ul className="space-y-2.5">{data.recent.slice(0, 7).map((r) => <li key={r.id} className="flex gap-3 text-[12.5px]"><span className="flex-1 min-w-0 truncate">{r.summary}</span><span className="text-ink-3 shrink-0 tnum">{relative(r.occurredAt)}</span></li>)}</ul>
         </Card>
-      </div>
-
-      {data.matches.length > 0 && (
+      ),
+    },
+    matches: data.matches.length === 0 ? null : {
+      cls: "lg:col-span-6 2xl:col-span-12",
+      node: (
         <Card title="Buyer Matches" action={<Link href="/buyers?tab=matches" className="card-link">Run Buyer Match →</Link>}>
           <div className="flex gap-2 flex-wrap">{data.matches.slice(0, 6).map((m, i) => <span key={i} className="inline-flex items-center gap-2 rounded-lg border border-line px-2.5 h-8 text-[12.5px]"><span className="font-semibold tnum text-gold-ink">{m.score}</span>{m.buyerName} ↔ {m.address}<Badge tone={m.kind === "listing" ? "active" : "gold"}>{label(m.kind)}</Badge></span>)}</div>
           <div className="text-[11.5px] text-ink-3 mt-2">Matched on price, area, size and stated must-haves. Volume in escrow is {pct(k.pendingVolume, k.pendingVolume + k.activeListingVolume)}% of tracked inventory.</div>
         </Card>
-      )}
+      ),
+    },
+  };
+
+  return (
+    <div className="space-y-5 fade-in">
+      <div className="flex items-end gap-4 flex-wrap">
+        <div><h1 className="text-[22px] font-semibold tracking-tight flex items-center gap-2">{data.greeting} <span className="text-gold" aria-hidden="true">☼</span></h1><div className="text-[13px] text-ink-3">{fmtDate(data.today, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}</div></div>
+        <div className="ml-auto text-[12px] text-ink-3 flex items-center gap-3">
+          <span className="hidden md:inline">Drag the ⋮⋮ handle on any box to rearrange</span>
+          {customLayout && <button className="card-link !ml-0 underline-offset-2 hover:underline" onClick={() => { kpiLayout.reset(); cardLayout.reset(); toast("Layout reset"); }}>Reset layout</button>}
+        </div>
+      </div>
+
+      {/* Row 1 — KPIs (reorderable within the strip) */}
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4 2xl:grid-cols-8">
+        {kpiLayout.ids.map((id) => kpis[id] && <Sortable key={id} id={id} className={kpis[id].cls ?? ""} state={kpiDrag}>{kpis[id].node}</Sortable>)}
+      </div>
+
+      {/* Cards — one flowing grid; drop a card on another to take its place */}
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-6 2xl:grid-cols-12">
+        {cardLayout.ids.map((id) => { const c = cards[id]; return c && <Sortable key={id} id={id} className={c.cls} state={cardDrag}>{c.node}</Sortable>; })}
+      </div>
     </div>
   );
 }

@@ -87,8 +87,9 @@ export function Shell({ children }: { children: ReactNode }) {
       <aside className={`${collapsed ? "w-[68px]" : "w-[228px]"} shrink-0 sticky top-0 h-screen border-r border-line bg-ground/80 flex flex-col px-3 py-4 transition-[width] duration-200`} aria-label="Primary">
         <div className="flex items-center gap-2 px-2 mb-5">
           <Link href="/" className="flex-1 min-w-0">
-            <div className="text-[17px] font-bold tracking-[0.18em] leading-none truncate">{collapsed ? "V" : "VANESSA"}</div>
-            {!collapsed && <div className="text-[9.5px] tracking-[0.28em] text-ink-3 mt-1">REAL ESTATE</div>}
+            {collapsed
+              ? <div className="text-[17px] font-bold tracking-[0.08em] leading-none">{(agent?.agentName ?? "Vanessa Bukowski").split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase()}</div>
+              : <><div className="text-[14px] font-bold tracking-[0.16em] leading-[1.15] uppercase">{(agent?.agentName ?? "Vanessa Bukowski").split(/\s+/).map((w) => <span key={w} className="block truncate">{w}</span>)}</div><div className="text-[9.5px] font-semibold tracking-[0.3em] text-ink-3 mt-1.5 uppercase">{agent?.brokerage ?? "SERHANT."}</div></>}
           </Link>
           <button className="btn btn-ghost btn-icon" onClick={() => setCollapsed((v) => !v)} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}><I d={collapsed ? "M9 6l6 6-6 6" : "M15 6l-6 6 6 6"} /></button>
         </div>

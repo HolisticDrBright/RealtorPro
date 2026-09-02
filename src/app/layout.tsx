@@ -3,7 +3,7 @@ import "./globals.css";
 import { Shell } from "@/components/app/shell";
 
 export const metadata: Metadata = {
-  title: "Vanessa Real Estate — Command Center",
+  title: "Vanessa Bukowski · SERHANT. — Command Center",
   description: "Luxury real estate command center: CRM, tasks, buyers, listings, pipeline, escrows and income in one place.",
 };
 

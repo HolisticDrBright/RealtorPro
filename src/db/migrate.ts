@@ -9,5 +9,7 @@ for (const dir of WORKSPACE_SUBDIRS) fs.mkdirSync(dir, { recursive: true });
 const sqlite = new Database(DB_FILE);
 sqlite.pragma("journal_mode = WAL");
 migrate(drizzle(sqlite), { migrationsFolder: path.resolve(process.cwd(), "drizzle") });
+// Databases seeded before the rebrand still carry the placeholder agent; move them to the current brand.
+sqlite.prepare("UPDATE settings SET agent_name = 'Vanessa Bukowski', brokerage = 'SERHANT.' WHERE agent_name = 'Vanessa Smith' AND brokerage = 'Compass'").run();
 console.log(`✔ Migrations applied to ${DB_FILE}`);
 sqlite.close();

@@ -60,3 +60,10 @@ button { font: inherit; color: inherit; }
 @media (prefers-reduced-motion: reduce) { .fade-in, .slide-in { animation: none; } }
 .dragging { opacity: .45; }
 .drop-target { outline: 2px dashed var(--gold); outline-offset: 2px; }
+/* Rearrangeable dashboard blocks: the wrapper is the grid item, the card fills it, the handle sits in the card's left gutter. */
+.sortable { position: relative; display: flex; flex-direction: column; min-width: 0; border-radius: theme(borderRadius.card); }
+.sortable > .card { flex: 1 1 auto; }
+.drag-handle { position: absolute; top: 13px; left: 5px; z-index: 2; width: 12px; line-height: 1; font-size: 12px; letter-spacing: -2px; color: theme(colors.ink.3); cursor: grab; user-select: none; opacity: 0; transition: opacity .15s; }
+.sortable:hover > .drag-handle, .drag-handle:focus-visible { opacity: 1; }
+.drag-handle:active { cursor: grabbing; }
+@media (hover: none) { .drag-handle { opacity: .7; } }

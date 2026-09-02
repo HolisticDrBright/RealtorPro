@@ -239,9 +239,9 @@ CREATE TABLE `sellers` (
 --> statement-breakpoint
 CREATE TABLE `settings` (
 	`id` text PRIMARY KEY NOT NULL,
-	`agent_name` text DEFAULT 'Vanessa Smith' NOT NULL,
+	`agent_name` text DEFAULT 'Vanessa Bukowski' NOT NULL,
 	`title` text DEFAULT 'Luxury Real Estate Advisor',
-	`brokerage` text DEFAULT 'Compass',
+	`brokerage` text DEFAULT 'SERHANT.',
 	`annual_goal` real DEFAULT 200000 NOT NULL,
 	`default_commission_pct` real DEFAULT 2.5 NOT NULL,
 	`default_split_pct` real DEFAULT 68 NOT NULL,

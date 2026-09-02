@@ -15,9 +15,9 @@ const json = <T>(name: string) => text(name, { mode: "json" }).$type<T>();
 
 export const settings = sqliteTable("settings", {
   id: id(),
-  agentName: text("agent_name").notNull().default("Vanessa Smith"),
+  agentName: text("agent_name").notNull().default("Vanessa Bukowski"),
   title: text("title").default("Luxury Real Estate Advisor"),
-  brokerage: text("brokerage").default("Compass"),
+  brokerage: text("brokerage").default("SERHANT."),
   annualGoal: real("annual_goal").notNull().default(200000),
   defaultCommissionPct: real("default_commission_pct").notNull().default(2.5),
   defaultSplitPct: real("default_split_pct").notNull().default(68),
