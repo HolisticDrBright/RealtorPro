@@ -1,8 +1,8 @@
 {
-  "name": "agentos",
+  "name": "vanessa-command-center",
   "version": "0.1.0",
   "private": true,
-  "description": "AgentOS — local-first workspace for individual REALTORS® who use Follow Up Boss.",
+  "description": "Luxury real estate command center \u2014 CRM, tasks, buyers, listings, pipeline, escrows and income in one local-first app.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -18,13 +18,9 @@
     "setup": "npm run db:migrate && npm run db:seed"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.123.0",
     "better-sqlite3": "11.8.1",
     "drizzle-orm": "0.38.4",
-    "exceljs": "^4.4.0",
     "next": "^15.5.21",
-    "pdf-lib": "^1.17.1",
-    "pptxgenjs": "^3.12.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "zod": "^3.25.76"

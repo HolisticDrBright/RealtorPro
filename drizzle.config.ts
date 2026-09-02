@@ -2,11 +2,9 @@ import type { Config } from "drizzle-kit";
 import { DB_FILE } from "./src/lib/paths";
 
 export default {
-  schema: ["./src/db/schema.ts", "./src/db/schema.modules.ts", "./src/db/schema.dashboard.ts", "./src/db/schema.vault.ts"],
+  schema: "./src/db/schema.ts",
   out: "./drizzle",
   dialect: "sqlite",
-  dbCredentials: {
-    url: DB_FILE,
-  },
+  dbCredentials: { url: DB_FILE },
   strict: true,
 } satisfies Config;

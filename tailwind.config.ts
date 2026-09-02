@@ -1,37 +1,26 @@
 import type { Config } from "tailwindcss";
 
-/**
- * Tailwind is part of the intended stack and is available for utility classes.
- * The Modernist design system itself is expressed as CSS custom properties and
- * component classes in `src/app/globals.css` (a direct port of the design
- * handoff's `design-system-tokens.css`), so the theme below simply exposes the
- * same tokens to Tailwind for convenience. Radius is 0 everywhere by design.
- */
+/** Luxury-minimal palette: off-white ground, charcoal ink, hairline borders, one gold accent. */
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        bg: "var(--color-bg)",
-        surface: "var(--color-surface)",
-        ink: "var(--color-text)",
-        accent: "var(--color-accent)",
-        divider: "var(--color-divider)",
+        ground: "#F7F7F5",
+        panel: "#FFFFFF",
+        ink: { DEFAULT: "#18181B", 2: "#52525B", 3: "#8A8A93" },
+        line: { DEFAULT: "#E7E7E4", 2: "#F0F0EE" },
+        gold: { DEFAULT: "#B8962E", soft: "#F6EFD9", ink: "#7A6119" },
+        ok: { DEFAULT: "#1F8A5B", soft: "#E3F3EA" },
+        warn: { DEFAULT: "#B7791F", soft: "#FBF0DC" },
+        crit: { DEFAULT: "#C0392B", soft: "#FBE5E2" },
+        info: { DEFAULT: "#2F5FBE", soft: "#E4EBF9" },
       },
-      fontFamily: {
-        heading: ["var(--font-body)"],
-        body: ["var(--font-body)"],
-      },
-      borderRadius: {
-        none: "0px",
-        sm: "0px",
-        DEFAULT: "0px",
-        md: "0px",
-        lg: "0px",
-      },
+      fontFamily: { sans: ["Instrument Sans", "Inter", "SF Pro Text", "system-ui", "sans-serif"] },
+      borderRadius: { card: "14px" },
+      boxShadow: { card: "0 1px 2px rgba(24,24,27,0.04)", pop: "0 12px 40px rgba(24,24,27,0.12)" },
     },
   },
   plugins: [],
 };
-
 export default config;

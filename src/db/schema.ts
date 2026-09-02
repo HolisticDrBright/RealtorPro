@@ -1,462 +1,332 @@
+import { index, integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
-import {
-  sqliteTable,
-  text,
-  integer,
-  real,
-  index,
-} from "drizzle-orm/sqlite-core";
-
-// Use the global Web Crypto UUID (Node 18+/browser) rather than importing from
-// "node:crypto", which keeps this schema module free of Node-only imports so it
-// loads cleanly under drizzle-kit's TS loader.
-const randomUUID = () => globalThis.crypto.randomUUID();
 
 /**
- * AgentOS database schema (SQLite via Drizzle ORM).
- *
- * Design notes
- * ------------
- * - IDs are text UUIDs, defaulted in the app layer.
- * - Timestamps are ISO-8601 strings (human readable, sorts lexicographically).
- * - Flexible lists/objects are stored as JSON text columns (`json()` helper).
- * - The Fact table is an APPEND-ONLY ledger: rows are never mutated. A corrected
- *   fact is a new row that supersedes an earlier one; conflicts are recorded,
- *   never silently resolved. AgentOS never infers a missing listing fact.
- * - Source documents and original assets are immutable: preserved permanently
- *   unless the user explicitly deletes them.
+ * Relational model for the command center. One `contacts` row per person —
+ * buyer and seller profiles hang off it, so nobody is entered twice.
+ * Transactions feed income/YTD; listings feed pipeline; everything links back
+ * to contacts and properties so timelines and search stay coherent.
  */
 
-const id = () =>
-  text("id")
-    .primaryKey()
-    .$defaultFn(() => randomUUID());
+const id = () => text("id").primaryKey().$defaultFn(() => globalThis.crypto.randomUUID());
+const createdAt = () => text("created_at").notNull().default(sql`(datetime('now'))`);
+const updatedAt = () => text("updated_at").notNull().default(sql`(datetime('now'))`);
+const json = <T>(name: string) => text(name, { mode: "json" }).$type<T>();
 
-const createdAt = () =>
-  text("created_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString());
-
-const updatedAt = () =>
-  text("updated_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString());
-
-/** Typed JSON column helper. */
-function json<T>(name: string) {
-  return text(name, { mode: "json" }).$type<T>();
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Identity & policy
-// ─────────────────────────────────────────────────────────────────────────────
-
-export const userProfiles = sqliteTable("user_profiles", {
+export const settings = sqliteTable("settings", {
   id: id(),
-  name: text("name").notNull(),
-  email: text("email"),
-  license: text("license"),
-  serviceAreas: json<string[]>("service_areas").default([]),
-  defaultBrandVoice: text("default_brand_voice").default("Warm, concrete, no hype"),
-  quietHours: text("quiet_hours").default("9:00 PM – 7:00 AM"),
-  nurtureCadence: text("nurture_cadence").default("Quarterly + anniversaries"),
+  agentName: text("agent_name").notNull().default("Vanessa Smith"),
+  title: text("title").default("Luxury Real Estate Advisor"),
+  brokerage: text("brokerage").default("Compass"),
+  annualGoal: real("annual_goal").notNull().default(200000),
+  defaultCommissionPct: real("default_commission_pct").notNull().default(2.5),
+  defaultSplitPct: real("default_split_pct").notNull().default(68),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
 
-export const brokeragePolicies = sqliteTable("brokerage_policies", {
-  id: id(),
-  userProfileId: text("user_profile_id").references(() => userProfiles.id),
-  name: text("name").notNull(),
-  // Guardrails, stored as flags so services can enforce them uniformly.
-  fairHousingEnforced: integer("fair_housing_enforced", { mode: "boolean" }).notNull().default(true),
-  allowRemoteGeneration: integer("allow_remote_generation", { mode: "boolean" }).notNull().default(false),
-  requireDisclosureForAlteredMedia: integer("require_disclosure_for_altered_media", { mode: "boolean" }).notNull().default(true),
-  maxJobsPerHour: integer("max_jobs_per_hour").notNull().default(20),
-  maxJobCostUsd: real("max_job_cost_usd").notNull().default(25),
-  dailySpendCapUsd: real("daily_spend_cap_usd").notNull().default(100),
-  createdAt: createdAt(),
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CRM entities (mirror of Follow Up Boss — FUB stays the system of record)
-// ─────────────────────────────────────────────────────────────────────────────
+export const CONTACT_TYPES = ["buyer", "seller", "past_client", "lead", "agent", "vendor", "sphere"] as const;
+export const LEAD_SOURCES = ["referral", "past_client", "instagram", "open_house", "cold_outreach", "agent_referral", "website", "zillow", "off_market", "sphere", "other"] as const;
+export const PIPELINE_STAGES = ["new_lead", "contacted", "qualified", "active_buyer", "active_seller", "showing_homes", "listing_appointment", "offer_submitted", "negotiating", "in_escrow", "closed", "nurture"] as const;
 
 export const contacts = sqliteTable(
   "contacts",
   {
     id: id(),
-    // Link to the FUB record. Contacts are NEVER matched by name alone.
-    fubId: text("fub_id"),
-    name: text("name").notNull(),
-    role: text("role"), // Buyer | Seller | Past client | ...
-    stage: text("stage"),
-    nextStep: text("next_step"),
+    firstName: text("first_name").notNull(),
+    lastName: text("last_name").notNull().default(""),
+    photoUrl: text("photo_url"),
     phone: text("phone"),
     email: text("email"),
-    syncStatus: text("sync_status").default("Synced"),
-    // hot | warm | cold — agent-set relationship temperature for the dashboard.
-    temperature: text("temperature").default("warm"),
-    // Mirrored from Follow Up Boss on sync.
+    spouse: text("spouse"),
+    birthday: text("birthday"), // YYYY-MM-DD
+    homeAddress: text("home_address"),
+    type: text("type").notNull().default("lead"),
+    leadSource: text("lead_source").default("other"),
     tags: json<string[]>("tags").default([]),
-    source: text("source"),
-    assignedTo: text("assigned_to"),
-    lastActivityAt: text("last_activity_at"),
+    priceMin: real("price_min"),
+    priceMax: real("price_max"),
+    preferredAreas: json<string[]>("preferred_areas").default([]),
+    currentProperty: text("current_property"),
+    // Pipeline
+    stage: text("stage").notNull().default("new_lead"),
+    stageOrder: integer("stage_order").notNull().default(0),
+    estValue: real("est_value"),
+    estCommission: real("est_commission"),
+    probability: integer("probability").notNull().default(20), // %
+    nextAction: text("next_action"),
+    // Relationship cadence
+    lastContactAt: text("last_contact_at"),
+    nextFollowUpAt: text("next_follow_up_at"),
+    checkBackAt: text("check_back_at"), // "check back in X months"
+    notes: text("notes"),
+    archived: integer("archived", { mode: "boolean" }).notNull().default(false),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => ({ fubIdx: index("contacts_fub_idx").on(t.fubId) }),
+  (t) => ({ stageIdx: index("contacts_stage_idx").on(t.stage), typeIdx: index("contacts_type_idx").on(t.type) }),
 );
 
-export const deals = sqliteTable("deals", {
+export const BUYER_TEMPS = ["hot", "warm", "nurture"] as const;
+export const buyers = sqliteTable("buyers", {
   id: id(),
-  fubId: text("fub_id"),
-  contactId: text("contact_id").references(() => contacts.id),
-  propertyId: text("property_id"),
-  name: text("name").notNull(),
-  stage: text("stage"),
-  price: text("price"),
-  riskFlag: text("risk_flag"), // high | med | null
-  riskIssue: text("risk_issue"),
-  // Mirrored from FUB deals.
-  dealStatus: text("deal_status"), // Active | Won | Lost | ...
-  pipeline: text("pipeline"),
-  closeDate: text("close_date"),
+  contactId: text("contact_id").notNull().references(() => contacts.id, { onDelete: "cascade" }),
+  temperature: text("temperature").notNull().default("warm"),
+  priority: text("priority").notNull().default("medium"),
+  priceMin: real("price_min"),
+  priceMax: real("price_max"),
+  targetAreas: json<string[]>("target_areas").default([]),
+  minBeds: real("min_beds"),
+  minBaths: real("min_baths"),
+  minSqft: real("min_sqft"),
+  lotRequirements: text("lot_requirements"),
+  propertyType: text("property_type"),
+  mustHaves: json<string[]>("must_haves").default([]),
+  dealBreakers: json<string[]>("deal_breakers").default([]),
+  financingType: text("financing_type"),
+  preApprovalAmount: real("pre_approval_amount"),
+  timeline: text("timeline"),
+  propertiesSent: integer("properties_sent").notNull().default(0),
+  propertiesToured: integer("properties_toured").notNull().default(0),
+  offersMade: integer("offers_made").notNull().default(0),
+  status: text("status").notNull().default("active"), // active | paused | closed
+  notes: text("notes"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
 
-export const tasks = sqliteTable("tasks", {
+export const SELLER_STAGES = ["lead", "contacted", "appointment_scheduled", "preparing_home", "agreement_signed", "coming_soon", "active", "sold"] as const;
+export const sellers = sqliteTable("sellers", {
   id: id(),
-  fubId: text("fub_id"),
-  contactId: text("contact_id").references(() => contacts.id),
-  dealId: text("deal_id").references(() => deals.id),
-  title: text("title").notNull(),
-  body: text("body"),
-  dueAt: text("due_at"),
-  status: text("status").notNull().default("open"), // open | done
-  // Where the task lives: local until explicitly pushed to FUB.
-  origin: text("origin").notNull().default("local"), // local | fub
-  syncedToFub: integer("synced_to_fub", { mode: "boolean" }).notNull().default(false),
+  contactId: text("contact_id").notNull().references(() => contacts.id, { onDelete: "cascade" }),
+  propertyAddress: text("property_address"),
+  city: text("city"),
+  estimatedValue: real("estimated_value"),
+  expectedListPrice: real("expected_list_price"),
+  timeline: text("timeline"),
+  motivation: text("motivation"),
+  listingAppointmentAt: text("listing_appointment_at"),
+  probability: integer("probability").notNull().default(30),
+  stage: text("stage").notNull().default("lead"),
+  notes: text("notes"),
   createdAt: createdAt(),
+  updatedAt: updatedAt(),
 });
-
-export const notes = sqliteTable("notes", {
-  id: id(),
-  fubId: text("fub_id"),
-  contactId: text("contact_id").references(() => contacts.id),
-  subject: text("subject"),
-  body: text("body").notNull(),
-  // Notes AgentOS writes back are ALWAYS drafts until the agent sends in FUB.
-  isDraft: integer("is_draft", { mode: "boolean" }).notNull().default(true),
-  origin: text("origin").notNull().default("local"),
-  syncedToFub: integer("synced_to_fub", { mode: "boolean" }).notNull().default(false),
-  createdAt: createdAt(),
-});
-
-export const appointments = sqliteTable("appointments", {
-  id: id(),
-  fubId: text("fub_id"),
-  contactId: text("contact_id").references(() => contacts.id),
-  title: text("title").notNull(),
-  who: text("who"),
-  location: text("location"),
-  type: text("type"),
-  startsAt: text("starts_at"),
-  endsAt: text("ends_at"),
-  description: text("description"),
-  createdAt: createdAt(),
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Listings, imports, source documents, assets
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const properties = sqliteTable("properties", {
   id: id(),
   address: text("address").notNull(),
-  mlsNumber: text("mls_number"),
-  price: text("price"),
+  city: text("city").notNull().default(""),
+  zip: text("zip"),
   beds: real("beds"),
   baths: real("baths"),
-  sqft: text("sqft"),
-  lot: text("lot"),
-  propertyType: text("property_type"),
-  features: json<string[]>("features").default([]),
-  remarks: text("remarks"),
-  openHouse: text("open_house"),
-  status: text("status"),
-  sourceMeta: json<Record<string, unknown>>("source_meta").default({}),
+  sqft: real("sqft"),
+  lotSqft: real("lot_sqft"),
+  propertyType: text("property_type").default("Single Family"),
+  yearBuilt: integer("year_built"),
+  photoUrl: text("photo_url"),
+  view: text("view"),
+  notes: text("notes"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
 
-/**
- * Immutable record of an uploaded source file (MLS CSV, PDF flyer, pasted
- * alert-email text, seller disclosure). Content is hashed and preserved on disk.
- */
-export const sourceDocuments = sqliteTable("source_documents", {
+export const LISTING_STATUSES = ["coming_soon", "off_market", "active", "price_improvement", "offer_received", "in_negotiation", "in_escrow", "closed", "withdrawn"] as const;
+export const listings = sqliteTable("listings", {
   id: id(),
-  kind: text("kind").notNull(), // mls_csv | pdf | email_text | disclosure
-  filename: text("filename").notNull(),
-  mimeType: text("mime_type").notNull(),
-  sha256: text("sha256").notNull(),
-  byteSize: integer("byte_size").notNull(),
-  storedPath: text("stored_path").notNull(),
-  meta: json<Record<string, unknown>>("meta").default({}),
+  propertyId: text("property_id").notNull().references(() => properties.id, { onDelete: "cascade" }),
+  sellerContactId: text("seller_contact_id").references(() => contacts.id),
+  listPrice: real("list_price").notNull(),
+  status: text("status").notNull().default("active"),
+  listedAt: text("listed_at"),
+  showings: integer("showings").notNull().default(0),
+  offers: integer("offers").notNull().default(0),
+  openHouses: integer("open_houses").notNull().default(0),
+  commissionPct: real("commission_pct").notNull().default(2.5),
+  nextAction: text("next_action"),
+  notes: text("notes"),
   createdAt: createdAt(),
+  updatedAt: updatedAt(),
 });
 
-/** Reusable, detectable CSV column mappings. */
-export const columnMappings = sqliteTable("column_mappings", {
+export const TX_STATUSES = ["escrow", "closed", "cancelled"] as const;
+export const transactions = sqliteTable(
+  "transactions",
+  {
+    id: id(),
+    propertyId: text("property_id").notNull().references(() => properties.id),
+    listingId: text("listing_id").references(() => listings.id),
+    contactId: text("contact_id").references(() => contacts.id), // the client
+    side: text("side").notNull().default("buyer"), // buyer | seller | both
+    status: text("status").notNull().default("escrow"),
+    purchasePrice: real("purchase_price").notNull(),
+    commissionPct: real("commission_pct").notNull().default(2.5),
+    referralFee: real("referral_fee").notNull().default(0),
+    brokerSplitPct: real("broker_split_pct").notNull().default(68),
+    expenses: real("expenses").notNull().default(0),
+    leadSource: text("lead_source"),
+    escrowOpenedAt: text("escrow_opened_at"),
+    closingDate: text("closing_date"),
+    closedAt: text("closed_at"),
+    notes: text("notes"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => ({ statusIdx: index("tx_status_idx").on(t.status) }),
+);
+
+export const MILESTONES = ["Offer Accepted", "Deposit Due", "Inspection", "Inspection Contingency", "Appraisal", "Loan Contingency", "Seller Disclosures", "Repair Requests", "Final Walkthrough", "Contingency Removal", "Closing"] as const;
+export const milestones = sqliteTable("milestones", {
   id: id(),
+  transactionId: text("transaction_id").notNull().references(() => transactions.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
-  sourceType: text("source_type").notNull().default("mls_csv"),
-  // Map of canonical field -> source header.
-  mapping: json<Record<string, string>>("mapping").notNull(),
+  dueDate: text("due_date"),
+  completedAt: text("completed_at"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  notes: text("notes"),
+});
+
+export const OFFER_STATUSES = ["preparing", "submitted", "countered", "accepted", "rejected", "backup", "withdrawn"] as const;
+export const offers = sqliteTable("offers", {
+  id: id(),
+  contactId: text("contact_id").references(() => contacts.id), // buyer
+  propertyId: text("property_id").references(() => properties.id),
+  listPrice: real("list_price"),
+  offerPrice: real("offer_price").notNull(),
+  submittedAt: text("submitted_at"),
+  sellerCounter: real("seller_counter"),
+  currentOffer: real("current_offer"),
+  financing: text("financing"),
+  downPayment: real("down_payment"),
+  closingTimeline: text("closing_timeline"),
+  contingencies: json<string[]>("contingencies").default([]),
+  status: text("status").notNull().default("preparing"),
+  notes: text("notes"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
 
-export const listingImports = sqliteTable("listing_imports", {
-  id: id(),
-  sourceDocumentId: text("source_document_id").references(() => sourceDocuments.id),
-  columnMappingId: text("column_mapping_id").references(() => columnMappings.id),
-  propertyId: text("property_id").references(() => properties.id),
-  rowCount: integer("row_count").notNull().default(0),
-  validRows: integer("valid_rows").notNull().default(0),
-  status: text("status").notNull().default("parsed"), // parsed | invalid | partial
-  issues: json<string[]>("issues").default([]),
-  createdAt: createdAt(),
-});
-
-/**
- * Original media (image / floor plan / video). Preserved permanently unless the
- * user explicitly deletes it. Alterations are NEW assets linked to the original.
- */
-export const assets = sqliteTable("assets", {
-  id: id(),
-  propertyId: text("property_id").references(() => properties.id),
-  kind: text("kind").notNull(), // image | floorplan | video
-  label: text("label"),
-  filename: text("filename").notNull(),
-  mimeType: text("mime_type").notNull(),
-  sha256: text("sha256").notNull(),
-  byteSize: integer("byte_size").notNull(),
-  storedPath: text("stored_path").notNull(),
-  rightsConfirmed: integer("rights_confirmed", { mode: "boolean" }).notNull().default(false),
-  // "original" | "altered". Altered assets reference the original they derive from.
-  alterationStatus: text("alteration_status").notNull().default("original"),
-  originalAssetId: text("original_asset_id"),
-  alterationDescription: text("alteration_description"),
-  createdAt: createdAt(),
-});
-
-/** AI-altered-media disclosure record, linked to the original asset. */
-export const mediaDisclosures = sqliteTable("media_disclosures", {
-  id: id(),
-  assetId: text("asset_id").references(() => assets.id),
-  originalAssetId: text("original_asset_id").references(() => assets.id),
-  alteration: text("alteration").notNull(),
-  disclosureText: text("disclosure_text").notNull(),
-  status: text("status").notNull().default("pending"), // pending | approved
-  createdAt: createdAt(),
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Fact ledger, generated claims, drafts, approvals, exports
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * APPEND-ONLY fact ledger. Every listing fact ever asserted, with its source.
- * Never updated in place. `conflictsWith` records a disagreement with an earlier
- * fact rather than overwriting it. `supersedesId` marks an explicit correction.
- */
-export const facts = sqliteTable(
-  "facts",
+export const TASK_CATEGORIES = ["client_follow_up", "prospecting", "listing", "buyer", "escrow", "marketing", "administrative", "personal"] as const;
+export const PRIORITIES = ["critical", "high", "medium", "low"] as const;
+export const tasks = sqliteTable(
+  "tasks",
   {
     id: id(),
-    propertyId: text("property_id").references(() => properties.id),
-    listingImportId: text("listing_import_id").references(() => listingImports.id),
-    sourceDocumentId: text("source_document_id").references(() => sourceDocuments.id),
-    field: text("field").notNull(),
-    value: text("value"),
-    source: text("source").notNull(), // human-readable provenance, e.g. "CSV: ListPrice"
-    confidence: text("confidence").notNull().default("reported"), // reported | verified | conflicting | missing
-    conflictsWith: text("conflicts_with"),
-    supersedesId: text("supersedes_id"),
+    title: text("title").notNull(),
+    category: text("category").notNull().default("client_follow_up"),
+    priority: text("priority").notNull().default("medium"),
+    dueDate: text("due_date"), // YYYY-MM-DD
+    dueTime: text("due_time"), // HH:MM
+    contactId: text("contact_id").references(() => contacts.id, { onDelete: "set null" }),
+    propertyId: text("property_id").references(() => properties.id, { onDelete: "set null" }),
+    transactionId: text("transaction_id").references(() => transactions.id, { onDelete: "set null" }),
+    recurrence: text("recurrence").notNull().default("none"), // none | daily | weekly | monthly
+    notes: text("notes"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    completedAt: text("completed_at"),
     createdAt: createdAt(),
+    updatedAt: updatedAt(),
   },
-  (t) => ({ propIdx: index("facts_prop_idx").on(t.propertyId) }),
+  (t) => ({ dueIdx: index("tasks_due_idx").on(t.dueDate) }),
 );
 
-export const drafts = sqliteTable("drafts", {
+export const calls = sqliteTable("calls", {
   id: id(),
-  kind: text("kind").notNull(), // mls_description | social_plan | flyer | video | email | note
-  propertyId: text("property_id").references(() => properties.id),
-  contactId: text("contact_id").references(() => contacts.id),
-  jobId: text("job_id"),
-  title: text("title"),
-  content: json<unknown>("content"),
-  status: text("status").notNull().default("draft"), // draft | approved
-  provider: text("provider"),
-  model: text("model"),
-  promptVersion: text("prompt_version"),
+  contactId: text("contact_id").notNull().references(() => contacts.id, { onDelete: "cascade" }),
+  scheduledDate: text("scheduled_date"), // YYYY-MM-DD
+  scheduledTime: text("scheduled_time"),
+  priority: text("priority").notNull().default("medium"),
+  reason: text("reason"),
+  notes: text("notes"),
+  status: text("status").notNull().default("scheduled"), // scheduled | completed | rescheduled
+  outcome: text("outcome"),
+  completedAt: text("completed_at"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
 
-/** A single generated claim/sentence, each traceable to the facts it cites. */
-export const generatedClaims = sqliteTable("generated_claims", {
-  id: id(),
-  draftId: text("draft_id").references(() => drafts.id),
-  text: text("text").notNull(),
-  sources: json<string[]>("sources").default([]),
-  factIds: json<string[]>("fact_ids").default([]),
-  createdAt: createdAt(),
-});
-
-/** Approval-gate record: nothing is "approved" without one of these. */
-export const approvals = sqliteTable("approvals", {
-  id: id(),
-  targetType: text("target_type").notNull(), // draft | section | disclosure | remote_generation | shortlist
-  targetId: text("target_id").notNull(),
-  label: text("label"),
-  approvedBy: text("approved_by").notNull(),
-  note: text("note"),
-  createdAt: createdAt(),
-});
-
-export const exports = sqliteTable("exports", {
-  id: id(),
-  kind: text("kind").notNull(), // full_backup | listing | disclosure_log
-  filename: text("filename").notNull(),
-  storedPath: text("stored_path").notNull(),
-  sha256: text("sha256"),
-  byteSize: integer("byte_size"),
-  createdAt: createdAt(),
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Buyer Scout
-// ─────────────────────────────────────────────────────────────────────────────
-
-export interface WeightedPreference {
-  label: string;
-  weight: number;
-  /** Optional canonical fact field this preference maps to, for scoring. */
-  field?: string;
-}
-
-export const buyerCriteriaProfiles = sqliteTable("buyer_criteria_profiles", {
-  id: id(),
-  contactId: text("contact_id").references(() => contacts.id),
-  label: text("label"),
-  ceilingText: text("ceiling_text"),
-  ceilingAmount: integer("ceiling_amount"),
-  ceilingHard: integer("ceiling_hard", { mode: "boolean" }).notNull().default(true),
-  hardConstraints: json<string[]>("hard_constraints").default([]),
-  weightedPrefs: json<WeightedPreference[]>("weighted_prefs").default([]),
-  areas: json<string[]>("areas").default([]),
-  mustHaves: json<string[]>("must_haves").default([]),
-  agreedAt: text("agreed_at"),
-  createdAt: createdAt(),
-  updatedAt: updatedAt(),
-});
-
-export const buyerMatches = sqliteTable("buyer_matches", {
-  id: id(),
-  criteriaProfileId: text("criteria_profile_id").references(() => buyerCriteriaProfiles.id),
-  propertyId: text("property_id").references(() => properties.id),
-  listingImportId: text("listing_import_id").references(() => listingImports.id),
-  address: text("address"),
-  score: integer("score").notNull().default(0),
-  overCeiling: integer("over_ceiling", { mode: "boolean" }).notNull().default(false),
-  reasons: json<{ text: string; source: string }[]>("reasons").default([]),
-  tradeoffs: json<string[]>("tradeoffs").default([]),
-  missingFacts: json<string[]>("missing_facts").default([]),
-  verifyQuestions: json<string[]>("verify_questions").default([]),
-  createdAt: createdAt(),
-});
-
-export const shortlists = sqliteTable("shortlists", {
-  id: id(),
-  criteriaProfileId: text("criteria_profile_id").references(() => buyerCriteriaProfiles.id),
-  name: text("name").notNull().default("Shortlist"),
-  createdAt: createdAt(),
-});
-
-export const shortlistItems = sqliteTable("shortlist_items", {
-  id: id(),
-  shortlistId: text("shortlist_id").references(() => shortlists.id),
-  matchId: text("match_id").references(() => buyerMatches.id),
-  propertyId: text("property_id").references(() => properties.id),
-  createdAt: createdAt(),
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Generation job queue (provider-neutral)
-// ─────────────────────────────────────────────────────────────────────────────
-
-export const generationJobs = sqliteTable("generation_jobs", {
-  id: id(),
-  propertyId: text("property_id").references(() => properties.id),
-  type: text("type").notNull(), // campaign | mls_description | image | video
-  status: text("status").notNull().default("draft"), // draft|queued|running|review|approved|failed|canceled
-  provider: text("provider").notNull().default("mock"),
-  model: text("model"),
-  promptVersion: text("prompt_version"),
-  inputs: json<Record<string, unknown>>("inputs").default({}),
-  outputs: json<Record<string, unknown>>("outputs").default({}),
-  costEstimateUsd: real("cost_estimate_usd").default(0),
-  isRemote: integer("is_remote", { mode: "boolean" }).notNull().default(false),
-  approvedForRemote: integer("approved_for_remote", { mode: "boolean" }).notNull().default(false),
-  error: text("error"),
-  createdAt: createdAt(),
-  updatedAt: updatedAt(),
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Providers, sync, audit
-// ─────────────────────────────────────────────────────────────────────────────
-
-export const providerConnections = sqliteTable("provider_connections", {
-  id: id(),
-  provider: text("provider").notNull(), // fub | llm | media
-  status: text("status").notNull().default("disconnected"), // connected | sync-error | disconnected
-  // We store a reference/hint, NEVER the raw key (keys live in env/local secrets).
-  keyRef: text("key_ref"),
-  scopes: json<string[]>("scopes").default([]),
-  lastSyncAt: text("last_sync_at"),
-  meta: json<Record<string, unknown>>("meta").default({}),
-  createdAt: createdAt(),
-  updatedAt: updatedAt(),
-});
-
-export const syncEvents = sqliteTable("sync_events", {
-  id: id(),
-  provider: text("provider").notNull().default("fub"),
-  direction: text("direction").notNull(), // pull | push
-  entity: text("entity"), // contacts | tasks | notes | deals | appointments
-  itemCount: integer("item_count").notNull().default(0),
-  status: text("status").notNull().default("OK"), // OK | error
-  detail: text("detail"),
-  createdAt: createdAt(),
-});
-
-export const auditLogs = sqliteTable(
-  "audit_logs",
+export const APPOINTMENT_TYPES = ["showing", "listing_appointment", "buyer_consultation", "open_house", "inspection", "appraisal", "final_walkthrough", "closing", "client_follow_up", "personal"] as const;
+export const appointments = sqliteTable(
+  "appointments",
   {
     id: id(),
-    action: text("action").notNull(),
-    actor: text("actor").notNull().default("agent"),
-    entityType: text("entity_type"),
-    entityId: text("entity_id"),
-    metadata: json<Record<string, unknown>>("metadata").default({}),
+    title: text("title").notNull(),
+    type: text("type").notNull().default("showing"),
+    startsAt: text("starts_at").notNull(), // ISO local
+    endsAt: text("ends_at"),
+    location: text("location"),
+    contactId: text("contact_id").references(() => contacts.id, { onDelete: "set null" }),
+    propertyId: text("property_id").references(() => properties.id, { onDelete: "set null" }),
+    transactionId: text("transaction_id").references(() => transactions.id, { onDelete: "set null" }),
+    notes: text("notes"),
     createdAt: createdAt(),
+    updatedAt: updatedAt(),
   },
-  (t) => ({ actionIdx: index("audit_action_idx").on(t.action) }),
+  (t) => ({ startIdx: index("appt_start_idx").on(t.startsAt) }),
 );
 
-// Convenience: current-timestamp SQL for any raw queries that need it.
-export const now = sql`(datetime('now'))`;
+export const notes = sqliteTable("notes", {
+  id: id(),
+  body: text("body").notNull(),
+  contactId: text("contact_id").references(() => contacts.id, { onDelete: "set null" }),
+  propertyId: text("property_id").references(() => properties.id, { onDelete: "set null" }),
+  transactionId: text("transaction_id").references(() => transactions.id, { onDelete: "set null" }),
+  pinned: integer("pinned", { mode: "boolean" }).notNull().default(false),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+export const ACTIVITY_TYPES = ["call", "text", "email", "showing", "meeting", "offer", "transaction", "note", "task", "system"] as const;
+export const activities = sqliteTable(
+  "activities",
+  {
+    id: id(),
+    contactId: text("contact_id").references(() => contacts.id, { onDelete: "cascade" }),
+    type: text("type").notNull().default("system"),
+    summary: text("summary").notNull(),
+    refType: text("ref_type"),
+    refId: text("ref_id"),
+    occurredAt: text("occurred_at").notNull().default(sql`(datetime('now'))`),
+  },
+  (t) => ({ contactIdx: index("activities_contact_idx").on(t.contactId) }),
+);
+
+export const OPPORTUNITY_KINDS = ["off_market", "coming_soon", "pocket_listing", "tear_down", "investment"] as const;
+export const opportunities = sqliteTable("opportunities", {
+  id: id(),
+  address: text("address").notNull(),
+  area: text("area"),
+  kind: text("kind").notNull().default("off_market"),
+  expectedPrice: real("expected_price"),
+  beds: real("beds"),
+  baths: real("baths"),
+  sqft: real("sqft"),
+  propertyType: text("property_type"),
+  sourceAgent: text("source_agent"),
+  contactId: text("contact_id").references(() => contacts.id, { onDelete: "set null" }),
+  status: text("status").notNull().default("new"), // new | watching | pursuing | matched | dead
+  notes: text("notes"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+export const TOUCH_KINDS = ["birthday", "anniversary", "gift", "holiday", "quarterly", "home_value", "referral_request"] as const;
+export const touchpoints = sqliteTable("touchpoints", {
+  id: id(),
+  contactId: text("contact_id").notNull().references(() => contacts.id, { onDelete: "cascade" }),
+  kind: text("kind").notNull().default("quarterly"),
+  dueDate: text("due_date").notNull(),
+  completedAt: text("completed_at"),
+  notes: text("notes"),
+  createdAt: createdAt(),
+});
+
+export const notifications = sqliteTable("notifications", {
+  id: id(),
+  title: text("title").notNull(),
+  body: text("body"),
+  kind: text("kind").notNull().default("info"),
+  href: text("href"),
+  readAt: text("read_at"),
+  createdAt: createdAt(),
+});
