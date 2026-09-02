@@ -82,6 +82,30 @@ pipeline stage) ← `buyers`, `sellers` (profiles) · `properties` ← `listings
 `settings` (agent, goal, default commission/split). Income is derived from
 transactions: gross = price × %, net = gross − referral − split − expenses.
 
+### Start with your real data
+
+The sample data exists so every screen has something to show. To replace it:
+
+1. **Wipe the samples.** Integrations → *Your data* → **Start fresh**, or
+   `npm run db:clear` in a terminal. Every record goes; your name, brokerage,
+   income goal and commission defaults stay. (`npm run setup:empty` does
+   migrate + clear in one step on a brand-new install.)
+2. **Fill it**, in any order:
+   - **Obsidian vault** — set `OBSIDIAN_VAULT_DIR` in `.env`, restart. Notes
+     with `type:` frontmatter import with one click. For a vault written in
+     free form, set `OBSIDIAN_ALLOW_CLAUDE=true` and press **Read vault with
+     Claude**: Claude reads the notes and proposes records that you review
+     before anything is saved.
+   - **Paste text** into Integrations → Claude: emails, meeting notes, a
+     spreadsheet export.
+   - **Claude Cowork / Desktop / Claude Code** through the MCP server
+     (`npm run mcp:config`): ask it to read your vault, your inbox export or an
+     MLS export you downloaded and call `import_records`.
+   - **By hand** with + Add.
+3. Everything imported is matched by natural keys (email → phone → name for
+   people, address for properties), so running an import twice updates rather
+   than duplicates.
+
 ### Claude and Obsidian (connected)
 
 Open **Integrations** in the sidebar. Both are optional and off until you add a

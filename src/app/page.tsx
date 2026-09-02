@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { api, label, telHref, smsHref, toast, useApi } from "@/lib/client";
 import { fmtMoney, pct } from "@/lib/calc";
 import { fmtDate, fmtTime, relative } from "@/lib/dates";
@@ -53,23 +53,56 @@ function useLayoutOrder(key: string, defaults: string[]) {
   return { ids, move, reset, custom: ids.join() !== defaults.join() };
 }
 
-interface DragState { drag: string | null; over: string | null; setDrag: (v: string | null) => void; setOver: (v: string | null) => void; onMove: (from: string, to: string) => void }
+interface DragState { group: string; ids: string[]; drag: string | null; over: string | null; setDrag: (v: string | null) => void; setOver: (v: string | null) => void; onMove: (from: string, to: string) => void }
 
-/** A grid cell the user can pick up by its ⋮⋮ handle and drop onto another cell. Only the handle starts a drag, so lists inside keep their own drag behaviour and text stays selectable. */
+const LABELS: Record<string, string> = { "kpi-volume": "YTD Sales Volume", "kpi-count": "YTD Closed Transactions", "kpi-net": "YTD GCI / Net Income", "kpi-pipeline": "Pipeline Value", goal: "Annual Income Goal", "kpi-pending": "Pending Volume", "kpi-active": "Active Listing Volume", priorities: "Today’s Priorities", schedule: "Today’s Schedule", calls: "Call List", hotBuyers: "Hot Buyers", listings: "Active Listings", escrows: "In Escrow", chart: "YTD Sales Performance", goalTracker: "Income Goal Tracker", alerts: "Smart Alerts", recent: "Recent Activity", matches: "Buyer Matches" };
+
+/**
+ * A grid cell the user can pick up by its ⋮⋮ handle and drop onto another
+ * cell. Uses pointer events, so it works with a mouse, a trackpad and a finger
+ * on a phone or tablet. Only the handle starts a move, so lists inside keep
+ * their own behaviour and text stays selectable. Arrow keys on the handle
+ * move the box one step at a time.
+ */
 function Sortable({ id, className = "", state, children }: { id: string; className?: string; state: DragState; children: ReactNode }) {
-  const [armed, setArmed] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
   const isTarget = state.over === id && !!state.drag && state.drag !== id;
+  const selector = `[data-sortable][data-group="${state.group}"]`;
+  const under = (x: number, y: number) => document.elementFromPoint(x, y)?.closest<HTMLElement>(selector)?.dataset.sortable ?? null;
+
+  function begin(e: React.PointerEvent<HTMLSpanElement>) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    e.preventDefault();
+    const el = ref.current; if (!el) return;
+    const startX = e.clientX, startY = e.clientY;
+    let lifted = false;
+    state.setDrag(id);
+    const onMove = (ev: PointerEvent) => {
+      const dx = ev.clientX - startX, dy = ev.clientY - startY;
+      if (!lifted && Math.hypot(dx, dy) > 4) { lifted = true; el.classList.add("lifted"); }
+      if (lifted) el.style.transform = `translate(${dx}px, ${dy}px)`;
+      const o = under(ev.clientX, ev.clientY);
+      state.setOver(o && o !== id ? o : null);
+      // Nudge the page when dragging near the top or bottom edge (long pages, phones).
+      if (ev.clientY < 70) window.scrollBy(0, -10); else if (ev.clientY > window.innerHeight - 70) window.scrollBy(0, 10);
+    };
+    const finish = (ev: PointerEvent) => {
+      window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", finish); window.removeEventListener("pointercancel", finish);
+      el.classList.remove("lifted"); el.style.transform = "";
+      const o = ev.type === "pointerup" ? under(ev.clientX, ev.clientY) : null;
+      if (o && o !== id) state.onMove(id, o);
+      state.setDrag(null); state.setOver(null);
+    };
+    window.addEventListener("pointermove", onMove); window.addEventListener("pointerup", finish); window.addEventListener("pointercancel", finish);
+  }
+  function keys(e: React.KeyboardEvent<HTMLSpanElement>) {
+    const i = state.ids.indexOf(id);
+    if (["ArrowLeft", "ArrowUp"].includes(e.key) && i > 0) { e.preventDefault(); state.onMove(id, state.ids[i - 1]); }
+    if (["ArrowRight", "ArrowDown"].includes(e.key) && i >= 0 && i < state.ids.length - 1) { e.preventDefault(); state.onMove(id, state.ids[i + 1]); }
+  }
   return (
-    <div
-      className={`sortable ${className} ${state.drag === id ? "dragging" : ""} ${isTarget ? "drop-target" : ""}`}
-      draggable={armed}
-      onDragStart={(e) => { if (!armed) return; e.stopPropagation(); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", id); state.setDrag(id); }}
-      onDragEnd={() => { state.setDrag(null); state.setOver(null); setArmed(false); }}
-      onDragOver={(e) => { if (state.drag && state.drag !== id) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (state.over !== id) state.setOver(id); } }}
-      onDragLeave={(e) => { if (state.over === id && !e.currentTarget.contains(e.relatedTarget as Node | null)) state.setOver(null); }}
-      onDrop={(e) => { if (!state.drag) return; e.preventDefault(); if (state.drag !== id) state.onMove(state.drag, id); state.setDrag(null); state.setOver(null); }}
-    >
-      <span className="drag-handle" role="button" tabIndex={0} title="Drag to move this box" aria-label={`Move ${id}`} onMouseDown={() => setArmed(true)} onMouseUp={() => setArmed(false)} onMouseLeave={() => { if (!state.drag) setArmed(false); }}>⋮⋮</span>
+    <div ref={ref} data-sortable={id} data-group={state.group} className={`sortable ${className} ${state.drag === id ? "dragging" : ""} ${isTarget ? "drop-target" : ""}`}>
+      <span className="drag-handle" role="button" tabIndex={0} title="Drag to move this box (arrow keys also work)" aria-label={`Move ${LABELS[id] ?? id}`} onPointerDown={begin} onKeyDown={keys}>⋮⋮</span>
       {children}
     </div>
   );
@@ -85,8 +118,8 @@ export default function DashboardPage() {
   const cardLayout = useLayoutOrder("cc.dashboard.cards", CARD_ORDER);
   const [drag, setDrag] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
-  const kpiDrag: DragState = { drag, over, setDrag, setOver, onMove: kpiLayout.move };
-  const cardDrag: DragState = { drag, over, setDrag, setOver, onMove: cardLayout.move };
+  const kpiDrag: DragState = { group: "kpis", ids: kpiLayout.ids, drag, over, setDrag, setOver, onMove: kpiLayout.move };
+  const cardDrag: DragState = { group: "cards", ids: cardLayout.ids, drag, over, setDrag, setOver, onMove: cardLayout.move };
   if (loading) return <Loading rows={6} />;
   if (error || !data) return <ErrorBox message={error ?? "No data"} onRetry={reload} />;
   const k = data.kpis, g = data.goal;

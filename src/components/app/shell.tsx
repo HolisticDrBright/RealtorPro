@@ -45,7 +45,9 @@ export const quickAdd: QuickAddFn = (e, i) => openQuick(e, i);
 export function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsedPref, setCollapsed] = useState(false);
+  const [mobileNav, setMobileNav] = useState(false);
+  const collapsed = collapsedPref && !mobileNav; // the phone drawer always shows full labels
   const [add, setAdd] = useState<{ entity: string; initial?: Record<string, unknown> } | null>(null);
   const [addMenu, setAddMenu] = useState(false);
   const [palette, setPalette] = useState(false);
@@ -84,16 +86,17 @@ export function Shell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen flex">
-      <aside className={`${collapsed ? "w-[68px]" : "w-[228px]"} shrink-0 sticky top-0 h-screen border-r border-line bg-ground/80 flex flex-col px-3 py-4 transition-[width] duration-200`} aria-label="Primary">
+      {mobileNav && <div className="fixed inset-0 z-40 bg-ink/30 md:hidden" onClick={() => setMobileNav(false)} aria-hidden="true" />}
+      <aside className={`${mobileNav ? "fixed inset-y-0 left-0 z-50 flex w-[260px] bg-ground shadow-pop" : "hidden md:flex"} ${collapsed ? "md:w-[68px]" : "md:w-[228px]"} shrink-0 md:sticky md:top-0 h-screen border-r border-line md:bg-ground/80 flex-col px-3 py-4 transition-[width] duration-200`} aria-label="Primary">
         <div className="flex items-center gap-2 px-2 mb-5">
           <Link href="/" className="flex-1 min-w-0">
             {collapsed
               ? <div className="text-[17px] font-bold tracking-[0.08em] leading-none">{(agent?.agentName ?? "Vanessa Bukowski").split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase()}</div>
               : <><div className="text-[14px] font-bold tracking-[0.16em] leading-[1.15] uppercase">{(agent?.agentName ?? "Vanessa Bukowski").split(/\s+/).map((w) => <span key={w} className="block truncate">{w}</span>)}</div><div className="text-[9.5px] font-semibold tracking-[0.3em] text-ink-3 mt-1.5 uppercase">{agent?.brokerage ?? "SERHANT."}</div></>}
           </Link>
-          <button className="btn btn-ghost btn-icon" onClick={() => setCollapsed((v) => !v)} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}><I d={collapsed ? "M9 6l6 6-6 6" : "M15 6l-6 6 6 6"} /></button>
+          <button className="btn btn-ghost btn-icon" onClick={() => (mobileNav ? setMobileNav(false) : setCollapsed((v) => !v))} aria-label={mobileNav ? "Close menu" : collapsed ? "Expand sidebar" : "Collapse sidebar"}><I d={mobileNav ? "M6 6l12 12M18 6L6 18" : collapsed ? "M9 6l6 6-6 6" : "M15 6l-6 6 6 6"} /></button>
         </div>
-        <nav className="flex flex-col gap-0.5 flex-1 overflow-y-auto">
+        <nav className="flex flex-col gap-0.5 flex-1 overflow-y-auto" onClick={(e) => { if ((e.target as HTMLElement).closest("a")) setMobileNav(false); }}>
           {NAV.map((n) => { const active = n.href === "/" ? pathname === "/" : pathname.startsWith(n.href); return <Link key={n.href} href={n.href} className={`nav-item ${active ? "active" : ""} ${collapsed ? "justify-center px-0" : ""}`} title={n.label} aria-current={active ? "page" : undefined}>{n.icon}{!collapsed && <span>{n.label}</span>}</Link>; })}
           {!collapsed && <div className="kicker px-3 mt-4 mb-1">More</div>}
           {MORE.map((n) => { const active = pathname.startsWith(n.href); return <Link key={n.href} href={n.href} className={`nav-item ${active ? "active" : ""} ${collapsed ? "justify-center px-0" : ""}`} title={n.label}>{collapsed ? <span className="text-[11px] font-semibold">{n.label[0]}</span> : <span className="pl-7">{n.label}</span>}</Link>; })}
@@ -108,7 +111,9 @@ export function Shell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="flex-1 min-w-0 flex flex-col">
-        <header className="sticky top-0 z-30 bg-ground/85 backdrop-blur border-b border-line px-6 h-16 flex items-center gap-4">
+        <header className="sticky top-0 z-30 bg-ground/85 backdrop-blur border-b border-line px-4 md:px-6 h-16 flex items-center gap-3 md:gap-4">
+          <button className="btn btn-ghost btn-icon md:hidden" onClick={() => setMobileNav(true)} aria-label="Open menu"><I d="M4 6h16M4 12h16M4 18h16" /></button>
+          <button className="btn btn-ghost btn-icon md:hidden" onClick={() => setPalette(true)} aria-label="Search"><I d="M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.3-4.3" /></button>
           <div className="flex-1 min-w-0 md:hidden" />
           <button className="hidden md:flex items-center gap-2 h-10 w-full max-w-[520px] rounded-lg border border-line bg-panel px-3 text-[13.5px] text-ink-3 hover:border-ink-3 transition-colors mx-auto" onClick={() => setPalette(true)} aria-label="Search">
             <I d="M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.3-4.3" /><span className="flex-1 text-left">Search contacts, properties, notes, etc...</span><kbd className="text-[11px] border border-line rounded px-1.5 py-0.5 bg-ground">⌘K</kbd>
@@ -142,7 +147,7 @@ export function Shell({ children }: { children: ReactNode }) {
             )}
           </div>
         </header>
-        <main className="flex-1 px-6 py-6 max-w-[1600px] w-full mx-auto">{children}</main>
+        <main className="flex-1 px-4 py-4 md:px-6 md:py-6 max-w-[1600px] w-full mx-auto">{children}</main>
       </div>
 
       <FormPanel open={!!add} onClose={() => setAdd(null)} entity={add?.entity ?? "tasks"} fields={FIELDS[add?.entity ?? "tasks"]} initial={add?.initial ?? null} title={`New ${ENTITY_LABEL[add?.entity ?? "tasks"] ?? "record"}`} onSaved={() => toast("Added")} />

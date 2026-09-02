@@ -63,7 +63,10 @@ button { font: inherit; color: inherit; }
 /* Rearrangeable dashboard blocks: the wrapper is the grid item, the card fills it, the handle sits in the card's left gutter. */
 .sortable { position: relative; display: flex; flex-direction: column; min-width: 0; border-radius: theme(borderRadius.card); }
 .sortable > .card { flex: 1 1 auto; }
-.drag-handle { position: absolute; top: 13px; left: 5px; z-index: 2; width: 12px; line-height: 1; font-size: 12px; letter-spacing: -2px; color: theme(colors.ink.3); cursor: grab; user-select: none; opacity: 0; transition: opacity .15s; }
-.sortable:hover > .drag-handle, .drag-handle:focus-visible { opacity: 1; }
+.drag-handle { position: absolute; top: 8px; left: 0; z-index: 2; width: 22px; height: 26px; display: grid; place-items: center; line-height: 1; font-size: 12px; letter-spacing: -2px; color: theme(colors.ink.3); cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none; opacity: 0; transition: opacity .15s; border-radius: 6px; }
+.sortable:hover > .drag-handle, .drag-handle:focus-visible, .sortable.dragging > .drag-handle { opacity: 1; }
 .drag-handle:active { cursor: grabbing; }
-@media (hover: none) { .drag-handle { opacity: .7; } }
+.sortable.dragging { opacity: .55; }
+.sortable.lifted { z-index: 40; pointer-events: none; box-shadow: theme(boxShadow.pop); }
+@media (hover: none) { .drag-handle { opacity: .75; width: 20px; height: 32px; top: 6px; left: 1px; } }
+.sortable.dragging * { user-select: none; -webkit-user-select: none; }

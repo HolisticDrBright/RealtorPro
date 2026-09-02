@@ -107,6 +107,25 @@ export function vaultTasks(): { text: string; note: string; uri: string }[] {
   return out;
 }
 
+/**
+ * Full text of indexed notes for Claude to read (Integrations → "Let Claude read
+ * the vault"). Skips the app's own write folder; optional folder filter;
+ * newest first. Only called when OBSIDIAN_ALLOW_CLAUDE=true.
+ */
+export function vaultNoteTexts(opts: { folder?: string; limit?: number } = {}): { path: string; title: string; text: string }[] {
+  const cfg = vaultConfig();
+  if (!cfg.dir || !cfg.exists) throw new AppError("unprocessable", "Obsidian vault is not configured (OBSIDIAN_VAULT_DIR).");
+  indexVaultIfChanged();
+  const folder = opts.folder?.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "").toLowerCase();
+  const rows = db.select({ path: s.vaultNotes.path, title: s.vaultNotes.title }).from(s.vaultNotes).orderBy(desc(s.vaultNotes.modifiedAt)).all()
+    .filter((n) => !n.path.toLowerCase().startsWith(cfg.writeFolder.toLowerCase() + "/"))
+    .filter((n) => !folder || n.path.toLowerCase().startsWith(folder + "/") || n.path.toLowerCase() === folder)
+    .slice(0, opts.limit ?? 200);
+  const out: { path: string; title: string; text: string }[] = [];
+  for (const n of rows) { try { out.push({ path: n.path, title: n.title, text: fs.readFileSync(path.join(cfg.dir, n.path), "utf8") }); } catch { /* removed since index */ } }
+  return out;
+}
+
 /** Write a new note into the write folder. Never overwrites. */
 export function writeVaultNote(title: string, content: string, subfolder?: string): { path: string; uri: string } {
   const cfg = vaultConfig();

@@ -64,6 +64,34 @@ export async function extractRecords(text: string): Promise<{ bundle: ImportBund
   return { bundle: ImportBundle.parse(res.parsed_output), model: res.model };
 }
 
+/** Merge several extractions into one bundle (natural-key de-duplication happens in applyImport). */
+function mergeBundles(parts: ImportBundleT[]): ImportBundleT {
+  const out: Record<string, unknown[]> = {};
+  for (const p of parts) for (const [k, v] of Object.entries(p)) if (Array.isArray(v)) out[k] = [...(out[k] ?? []), ...v];
+  return ImportBundle.parse(out);
+}
+
+/**
+ * Read a set of notes (path + text) and extract records from all of them.
+ * Notes are packed into batches of roughly 60k characters so a large vault
+ * takes a handful of calls; each note is wrapped with its path so Claude can
+ * tell one client's note from another.
+ */
+export async function extractRecordsFromNotes(notes: { path: string; title: string; text: string }[], batchChars = 60000): Promise<{ bundle: ImportBundleT; model: string; batches: number }> {
+  const batches: string[] = [];
+  let cur = "";
+  for (const n of notes) {
+    const chunk = `<note path="${n.path}" title="${n.title.replace(/"/g, "'")}">\n${n.text.slice(0, batchChars)}\n</note>\n\n`;
+    if (cur && cur.length + chunk.length > batchChars) { batches.push(cur); cur = ""; }
+    cur += chunk;
+  }
+  if (cur) batches.push(cur);
+  const results: ImportBundleT[] = [];
+  let model = MODEL;
+  for (const text of batches) { const r = await extractRecords(text); results.push(r.bundle); model = r.model; }
+  return { bundle: mergeBundles(results), model, batches: batches.length };
+}
+
 const BRIEFING_SYSTEM = [
   "You are the morning-briefing assistant inside a real-estate agent's command center.",
   "Write a short, direct plan for the day from ONLY the facts in the JSON: what to protect first (escrow deadlines, countered offers), who to call and why, which buyers need a touch, listings needing action, and where the year stands against the income goal.",
