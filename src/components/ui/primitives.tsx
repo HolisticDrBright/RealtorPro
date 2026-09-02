@@ -56,14 +56,12 @@ export function Kpi({ label, value, sub, delta, spark, tone }: { label: string; 
   return (
     <div className="card px-5 py-4 min-w-0">
       <div className="kicker">{label}</div>
-      <div className="mt-1.5 text-[22px] font-semibold tracking-tight tnum leading-none whitespace-nowrap">{value}</div>
-      <div className="mt-2 flex items-end gap-3 min-h-[28px]">
-        <div className="text-[12px] text-ink-3 flex-1 min-w-0">
-          {delta && <span className={`inline-flex items-center gap-1 font-medium whitespace-nowrap ${delta.pct >= 0 ? "text-ok" : "text-crit"}`}><Arrow up={delta.pct >= 0} />{Math.abs(delta.pct)}% {delta.label}</span>}
-          {delta === null && <span>No prior-year data</span>}
-          {sub && <div className={tone ? `text-${tone}` : ""}>{sub}</div>}
-        </div>
-        {spark && spark.length > 1 && <span className="hidden 2xl:block"><Sparkline data={spark} /></span>}
+      <div className="mt-1.5 text-[clamp(17px,1.3vw,22px)] font-semibold tracking-tight tnum leading-none whitespace-nowrap">{value}</div>
+      <div className="mt-2 text-[12px] text-ink-3 min-h-[28px]">
+        {delta && <span className={`inline-flex items-center gap-1 font-medium whitespace-nowrap ${delta.pct >= 0 ? "text-ok" : "text-crit"}`}><Arrow up={delta.pct >= 0} />{Math.abs(delta.pct)}% {delta.label}</span>}
+        {delta === null && <span>No prior-year data</span>}
+        {sub && <div className={tone ? `text-${tone}` : ""}>{sub}</div>}
+        {spark && spark.length > 1 && <div className="mt-1.5"><Sparkline data={spark} w={110} h={22} /></div>}
       </div>
     </div>
   );

@@ -100,9 +100,9 @@ export default function DashboardPage() {
             {data.callList.filter((c) => c.status !== "completed").slice(0, 6).map((c) => (
               <li key={c.id} className="flex items-center gap-3 py-2.5">
                 <Avatar name={c.contactName} src={c.photoUrl} size={34} />
-                <div className="min-w-0 w-[140px] shrink-0"><Link href={`/contacts/${c.contactId}`} className="text-[13.5px] font-medium hover:underline truncate block">{c.contactName}</Link><div className="text-[12px] text-ink-3 truncate">{c.clientType}{c.priceLabel ? ` · ${c.priceLabel}` : ""}</div></div>
-                <div className="min-w-0 flex-1 hidden lg:block"><div className="text-[12.5px] tnum whitespace-nowrap">{c.phone ?? "—"}</div><div className="text-[12px] text-ink-3 truncate">{c.area ?? c.reason ?? ""}</div></div>
-                <div className="w-16 text-right"><Badge tone={c.priority}>{c.priority}</Badge><div className="text-[11.5px] text-ink-3 mt-0.5 tnum">{fmtTime(c.scheduledTime) || "—"}</div></div>
+                <div className="min-w-0 flex-1"><Link href={`/contacts/${c.contactId}`} className="text-[13.5px] font-medium hover:underline truncate block">{c.contactName}</Link><div className="text-[12px] text-ink-3 truncate">{c.clientType}{c.priceLabel ? ` · ${c.priceLabel}` : ""}</div></div>
+                <div className="w-[112px] shrink-0 hidden lg:block"><div className="text-[12.5px] tnum whitespace-nowrap">{c.phone ?? "—"}</div><div className="text-[12px] text-ink-3 truncate">{c.area ?? ""}</div></div>
+                <div className="w-[68px] shrink-0 text-right"><Badge tone={c.priority}>{c.priority}</Badge><div className="text-[11.5px] text-ink-3 mt-0.5 tnum">{fmtTime(c.scheduledTime) || "—"}</div></div>
                 <div className="flex items-center gap-1">
                   <a className="btn btn-ghost btn-icon" href={telHref(c.phone)} aria-label="Call" title="Call">☎</a>
                   <a className="btn btn-ghost btn-icon" href={smsHref(c.phone)} aria-label="Text" title="Text">✉</a>
