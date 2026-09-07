@@ -15,7 +15,7 @@ const list = z.union([z.array(z.string()), z.string().transform((v) => v.split(/
 const en = <T extends readonly [string, ...string[]]>(vals: T) => z.enum(vals).optional();
 
 export const schemas = {
-  settings: z.object({ agentName: z.string().min(1).optional(), title: str, brokerage: str, annualGoal: num, defaultCommissionPct: num, defaultSplitPct: num }),
+  settings: z.object({ agentName: z.string().trim().min(1).max(200).optional(), title: str, brokerage: str, annualGoal: z.coerce.number().min(0).max(1e10).optional(), defaultCommissionPct: z.coerce.number().min(0).max(100).optional(), defaultSplitPct: z.coerce.number().min(0).max(100).optional() }),
   contacts: z.object({
     firstName: z.string().trim().min(1, "First name is required"), lastName: z.string().trim().optional().default(""), photoUrl: str, phone: str, email: z.string().trim().email().nullable().optional().or(z.literal("")), spouse: str, birthday: str, homeAddress: str,
     type: en(s.CONTACT_TYPES), leadSource: en(s.LEAD_SOURCES), tags: list, priceMin: num, priceMax: num, preferredAreas: list, currentProperty: str,

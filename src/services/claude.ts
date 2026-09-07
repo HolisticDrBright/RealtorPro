@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod/v4";
 import { AppError } from "@/lib/errors";
+import { claudeKey, claudeModel, claudeStatus } from "@/lib/connections";
 import { ImportBundle, type ImportBundleT } from "./importer";
 
 /**
@@ -12,13 +13,11 @@ import { ImportBundle, type ImportBundleT } from "./importer";
  * briefing from the facts on the dashboard. Nothing is sent to clients.
  */
 
-export const MODEL = process.env.CLAUDE_MODEL?.trim() || "claude-opus-5";
-export const isClaudeConfigured = () => !!process.env.ANTHROPIC_API_KEY?.trim();
-
-let client: Anthropic | null = null;
+export const isClaudeConfigured = () => claudeStatus().configured;
 function getClient(): Anthropic {
-  if (!isClaudeConfigured()) throw new AppError("unprocessable", "Add ANTHROPIC_API_KEY to .env and restart to use Claude.");
-  return (client ??= new Anthropic());
+  const apiKey = claudeKey();
+  if (!apiKey) throw new AppError("unprocessable", "Connect your Claude API key on the Integrations page.");
+  return new Anthropic({ apiKey, timeout: 120000, maxRetries: 1 });
 }
 
 // Output schema for structured extraction: every field present, null when unknown.
@@ -52,7 +51,7 @@ const EXTRACT_SYSTEM = [
 /** Extract a validated ImportBundle from free text. */
 export async function extractRecords(text: string): Promise<{ bundle: ImportBundleT; model: string }> {
   const res = await getClient().messages.parse({
-    model: MODEL,
+    model: claudeModel(),
     max_tokens: 16000,
     thinking: { type: "adaptive" },
     output_config: { effort: "medium", format: zodOutputFormat(ClaudeBundle) },
@@ -78,16 +77,19 @@ function mergeBundles(parts: ImportBundleT[]): ImportBundleT {
  * tell one client's note from another.
  */
 export async function extractRecordsFromNotes(notes: { path: string; title: string; text: string }[], batchChars = 60000): Promise<{ bundle: ImportBundleT; model: string; batches: number }> {
+  if (notes.reduce((sum, n) => sum + n.text.length, 0) > 240000) throw new AppError("unprocessable", "Selected notes exceed the 240,000-character budget. Choose a smaller folder or fewer notes. Nothing was sent to Claude.");
   const batches: string[] = [];
   let cur = "";
   for (const n of notes) {
-    const chunk = `<note path="${n.path}" title="${n.title.replace(/"/g, "'")}">\n${n.text.slice(0, batchChars)}\n</note>\n\n`;
+    if (n.text.length > batchChars) throw new AppError("unprocessable", `Note ${n.path} is too large for one extraction. Split it into smaller notes; nothing has been imported.`);
+    const chunk = JSON.stringify({ path: n.path, title: n.title, text: n.text }) + "\n\n";
     if (cur && cur.length + chunk.length > batchChars) { batches.push(cur); cur = ""; }
     cur += chunk;
   }
   if (cur) batches.push(cur);
+  if (batches.length > 5) throw new AppError("unprocessable", "This extraction would need more than five API calls. Choose fewer notes.");
   const results: ImportBundleT[] = [];
-  let model = MODEL;
+  let model = claudeModel();
   for (const text of batches) { const r = await extractRecords(text); results.push(r.bundle); model = r.model; }
   return { bundle: mergeBundles(results), model, batches: batches.length };
 }
@@ -100,7 +102,7 @@ const BRIEFING_SYSTEM = [
 
 export async function writeBriefing(facts: unknown): Promise<string> {
   const res = await getClient().messages.create({
-    model: MODEL,
+    model: claudeModel(),
     max_tokens: 4000,
     thinking: { type: "adaptive" },
     output_config: { effort: "low" },

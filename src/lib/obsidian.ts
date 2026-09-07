@@ -64,10 +64,11 @@ const digits = (s: string) => s.replace(/\D/g, "");
 
 export function linkNote(note: ParsedNote, contactsList: ContactRef[], propertiesList: PropertyRef[]): NoteLink {
   const fm = note.frontmatter;
-  const byName = (v: unknown) => (typeof v === "string" ? contactsList.find((c) => norm(c.name) === norm(v)) ?? null : null);
-  const byEmail = (v: unknown) => (typeof v === "string" && v.includes("@") ? contactsList.find((c) => c.email && norm(c.email) === norm(v)) ?? null : null);
-  const byPhone = (v: unknown) => (typeof v === "string" && digits(v).length >= 7 ? contactsList.find((c) => c.phone && digits(c.phone).endsWith(digits(v).slice(-10))) ?? null : null);
-  const byAddr = (v: unknown) => (typeof v === "string" ? propertiesList.find((p) => norm(p.address) === norm(v) || norm(v).startsWith(norm(p.address))) ?? null : null);
+  const unique = <T,>(rows: T[]) => rows.length === 1 ? rows[0] : null;
+  const byName = (v: unknown) => (typeof v === "string" ? unique(contactsList.filter((c) => norm(c.name) === norm(v))) : null);
+  const byEmail = (v: unknown) => (typeof v === "string" && v.includes("@") ? unique(contactsList.filter((c) => c.email && norm(c.email) === norm(v))) : null);
+  const byPhone = (v: unknown) => (typeof v === "string" && digits(v).length >= 7 ? unique(contactsList.filter((c) => c.phone && digits(c.phone).endsWith(digits(v).slice(-10)))) : null);
+  const byAddr = (v: unknown) => (typeof v === "string" ? unique(propertiesList.filter((p) => norm(p.address) === norm(v))) : null);
   let contact = byEmail(fm.email) ?? byPhone(fm.phone) ?? byName(fm.contact) ?? byName(fm.client) ?? byName(fm.name);
   let property = byAddr(fm.property) ?? byAddr(fm.address);
   let basis: NoteLink["basis"] = contact || property ? "frontmatter" : null;

@@ -42,13 +42,14 @@ async function call<T = unknown>(method: string, url: string, body?: unknown): P
     const res = await fetch(url, { method, headers: body !== undefined ? { "content-type": "application/json" } : undefined, body: body !== undefined ? JSON.stringify(body) : undefined });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) return { ok: false, data, message: data?.error?.message ?? `Request failed (${res.status})` };
-    bump();
+    if (method !== "GET") bump();
     return { ok: true, data };
   } catch {
-    return { ok: false, data: null as T, message: "Network error — nothing was changed." };
+    return { ok: false, data: null as T, message: "Connection interrupted. Refresh to check the result before trying again." };
   }
 }
 export const api = {
+  get: <T = unknown>(url: string) => call<T>("GET", url),
   create: <T = unknown>(entity: string, body: unknown) => call<{ item: T }>("POST", `/api/${entity}`, body),
   update: <T = unknown>(entity: string, id: string, body: unknown) => call<{ item: T }>("PATCH", `/api/${entity}/${id}`, body),
   remove: (entity: string, id: string) => call("DELETE", `/api/${entity}/${id}`),

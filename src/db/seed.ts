@@ -10,6 +10,7 @@ import * as s from "./schema";
 import { DB_FILE, WORKSPACE_SUBDIRS } from "../lib/paths";
 import { addDays, ymd } from "../lib/dates";
 
+if (process.env.ALLOW_DEMO_DATA !== "YES" || !process.env.WORKSPACE_DIR?.endsWith("-demo")) throw new Error("Demo seeding is disabled. Use a separate WORKSPACE_DIR ending in -demo and ALLOW_DEMO_DATA=YES. Never seed a live workspace.");
 for (const dir of WORKSPACE_SUBDIRS) fs.mkdirSync(dir, { recursive: true });
 const sqlite = new Database(DB_FILE);
 sqlite.pragma("foreign_keys = ON");

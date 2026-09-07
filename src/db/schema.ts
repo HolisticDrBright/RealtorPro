@@ -15,14 +15,21 @@ const json = <T>(name: string) => text(name, { mode: "json" }).$type<T>();
 
 export const settings = sqliteTable("settings", {
   id: id(),
-  agentName: text("agent_name").notNull().default("Vanessa Bukowski"),
+  agentName: text("agent_name").notNull().default("Agent"),
   title: text("title").default("Luxury Real Estate Advisor"),
-  brokerage: text("brokerage").default("SERHANT."),
-  annualGoal: real("annual_goal").notNull().default(200000),
+  brokerage: text("brokerage").default(""),
+  annualGoal: real("annual_goal").notNull().default(0),
   defaultCommissionPct: real("default_commission_pct").notNull().default(2.5),
   defaultSplitPct: real("default_split_pct").notNull().default(68),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
+});
+
+export const reviews = sqliteTable("reviews", {
+  id: id(), source: text("source").notNull(), payload: text("payload").notNull(),
+  preview: text("preview").notNull(), fingerprint: text("fingerprint").notNull(),
+  status: text("status").notNull().default("pending"), result: text("result"),
+  createdAt: createdAt(), updatedAt: updatedAt(),
 });
 
 export const CONTACT_TYPES = ["buyer", "seller", "past_client", "lead", "agent", "vendor", "sphere"] as const;

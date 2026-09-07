@@ -31,6 +31,7 @@ export const NAV: { href: string; label: string; icon: ReactNode; key?: string }
   { href: "/notes", label: "Notes", icon: <I d="M5 3h10l4 4v14H5zM15 3v4h4M8 12h8M8 16h6" /> },
 ];
 const MORE = [
+  { href: "/reviews", label: "Review Inbox" },
   { href: "/offers", label: "Offers" }, { href: "/opportunities", label: "Opportunities" }, { href: "/sphere", label: "Stay in Touch" }, { href: "/followups", label: "Needs Follow-Up" }, { href: "/integrations", label: "Integrations" },
 ];
 function I({ d }: { d: string }) { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>; }
@@ -91,8 +92,8 @@ export function Shell({ children }: { children: ReactNode }) {
         <div className="flex items-center gap-2 px-2 mb-5">
           <Link href="/" className="flex-1 min-w-0">
             {collapsed
-              ? <div className="text-[17px] font-bold tracking-[0.08em] leading-none">{(agent?.agentName ?? "Vanessa Bukowski").split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase()}</div>
-              : <><div className="text-[14px] font-bold tracking-[0.16em] leading-[1.15] uppercase">{(agent?.agentName ?? "Vanessa Bukowski").split(/\s+/).map((w) => <span key={w} className="block truncate">{w}</span>)}</div><div className="text-[9.5px] font-semibold tracking-[0.3em] text-ink-3 mt-1.5 uppercase">{agent?.brokerage ?? "SERHANT."}</div></>}
+              ? <div className="text-[17px] font-bold tracking-[0.08em] leading-none">{(agent?.agentName ?? "Agent").split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase()}</div>
+              : <><div className="text-[14px] font-bold tracking-[0.16em] leading-[1.15] uppercase">{(agent?.agentName ?? "Agent").split(/\s+/).map((w) => <span key={w} className="block truncate">{w}</span>)}</div><div className="text-[9.5px] font-semibold tracking-[0.3em] text-ink-3 mt-1.5 uppercase">{agent?.brokerage ?? ""}</div></>}
           </Link>
           <button className="btn btn-ghost btn-icon" onClick={() => (mobileNav ? setMobileNav(false) : setCollapsed((v) => !v))} aria-label={mobileNav ? "Close menu" : collapsed ? "Expand sidebar" : "Collapse sidebar"}><I d={mobileNav ? "M6 6l12 12M18 6L6 18" : collapsed ? "M9 6l6 6-6 6" : "M15 6l-6 6 6 6"} /></button>
         </div>

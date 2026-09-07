@@ -1,0 +1,18 @@
+import { loadEnvConfig } from "@next/env";
+import { spawn } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+import { randomBytes } from "node:crypto";
+loadEnvConfig(process.cwd());
+const workspace = path.resolve(process.env.WORKSPACE_DIR || "./workspace");
+fs.mkdirSync(workspace, { recursive: true });
+const tokenFile = path.join(workspace, ".runtime-token");
+if (!fs.existsSync(tokenFile)) fs.writeFileSync(tokenFile, randomBytes(32).toString("hex"), { mode: 0o600, flag: "wx" });
+const token = fs.readFileSync(tokenFile, "utf8").trim();
+if (!/^[a-f0-9]{64}$/.test(token)) throw new Error("Invalid local session file. Stop the app and remove only workspace/.runtime-token to recreate it.");
+const mode = process.argv[2] === "start" ? "start" : "dev";
+const port = process.env.PORT || "3000";
+if (!/^\d{2,5}$/.test(port)) throw new Error("PORT must be a valid port number.");
+const child = spawn(process.execPath, [path.resolve("node_modules/next/dist/bin/next"), mode, "--hostname", "127.0.0.1", "--port", port], { stdio: "inherit", windowsHide: true, env: { ...process.env, COMMAND_CENTER_TOKEN: token } });
+child.on("exit", (code) => process.exit(code ?? 0));
+for (const signal of ["SIGINT", "SIGTERM"] as const) process.on(signal, () => child.kill(signal));

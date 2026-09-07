@@ -8,6 +8,7 @@ import * as s from "@/db/schema";
 import { extractOpenTasks, isDailyNoteFor, linkNote, obsidianUri, parseNote, recordTypeOf, shouldIndex, type RecordType } from "@/lib/obsidian";
 import { AppError } from "@/lib/errors";
 import { ymd } from "@/lib/dates";
+import { readConnections } from "@/lib/connections";
 import { applyImport, ImportBundle, type ImportBundleT, type ImportReport } from "./importer";
 
 /**
@@ -19,17 +20,21 @@ import { applyImport, ImportBundle, type ImportBundleT, type ImportReport } from
  */
 
 export function vaultConfig() {
+  const saved = readConnections().vault;
+  if (saved) return { ...saved, exists: !!saved.dir && fs.existsSync(saved.dir) && fs.statSync(saved.dir).isDirectory(), writeFolder: "Command Center" };
   const dir = process.env.OBSIDIAN_VAULT_DIR?.trim() ? path.resolve(process.env.OBSIDIAN_VAULT_DIR.trim()) : null;
   const list = (v?: string) => (v ?? "").split(",").map((x) => x.trim()).filter(Boolean);
   return { dir, exists: !!dir && fs.existsSync(dir) && fs.statSync(dir).isDirectory(), writeFolder: process.env.OBSIDIAN_WRITE_FOLDER?.trim() || "Command Center", include: list(process.env.OBSIDIAN_INCLUDE_FOLDERS), exclude: list(process.env.OBSIDIAN_EXCLUDE_FOLDERS), allowClaude: /^(1|true|yes)$/i.test(process.env.OBSIDIAN_ALLOW_CLAUDE ?? "") };
 }
 
-function walk(root: string, rel = ""): string[] {
+function walk(root: string, rel = "", count = { value: 0 }): string[] {
   const out: string[] = [];
+  if (rel.split("/").length > 30) throw new AppError("unprocessable", "Vault nesting exceeds 30 folders. Select a smaller vault.");
   for (const e of fs.readdirSync(path.join(root, rel), { withFileTypes: true })) {
-    if (e.name.startsWith(".")) continue;
+    if (e.name.startsWith(".") || e.isSymbolicLink()) continue;
     const r = rel ? `${rel}/${e.name}` : e.name;
-    if (e.isDirectory()) out.push(...walk(root, r)); else out.push(r);
+    if (++count.value > 25000) throw new AppError("unprocessable", "Vault exceeds 25,000 entries. Select a smaller vault.");
+    if (e.isDirectory()) out.push(...walk(root, r, count)); else out.push(r);
   }
   return out;
 }
@@ -37,10 +42,13 @@ function walk(root: string, rel = ""): string[] {
 export function vaultStatus() {
   const cfg = vaultConfig();
   const rows = cfg.exists ? db.select({ recordType: s.vaultNotes.recordType, indexedAt: s.vaultNotes.indexedAt, contactId: s.vaultNotes.contactId }).from(s.vaultNotes).all() : [];
-  return { configured: !!cfg.dir, exists: cfg.exists, dir: cfg.dir, dirName: cfg.dir ? path.basename(cfg.dir) : null, writeFolder: cfg.writeFolder, noteCount: rows.length, importable: rows.filter((r) => r.recordType).length, linked: rows.filter((r) => r.contactId).length, lastIndexedAt: rows.map((r) => r.indexedAt).sort().pop() ?? null, allowClaude: cfg.allowClaude };
+  return { configured: !!cfg.dir, exists: cfg.exists, dir: cfg.dir, dirName: cfg.dir ? path.basename(cfg.dir) : null, writeFolder: cfg.writeFolder, noteCount: rows.length, importable: rows.filter((r) => r.recordType).length, linked: rows.filter((r) => r.contactId).length, lastIndexedAt: rows.map((r) => r.indexedAt).sort().pop() ?? null, allowClaude: cfg.allowClaude, include: cfg.include, exclude: cfg.exclude };
 }
 
 export function indexVault() {
+  return db.transaction(() => indexVaultContents());
+}
+function indexVaultContents() {
   const cfg = vaultConfig();
   if (!cfg.dir) throw new AppError("unprocessable", "Set OBSIDIAN_VAULT_DIR in .env to your vault folder, then restart the app.");
   if (!cfg.exists) throw new AppError("not_found", `Vault folder not found: ${cfg.dir}`);
@@ -52,13 +60,14 @@ export function indexVault() {
   for (const rel of walk(cfg.dir)) {
     if (!shouldIndex(rel, cfg.include, cfg.exclude)) continue;
     const abs = path.join(cfg.dir, rel);
+    if (fs.statSync(abs).size > 2_000_000) throw new AppError("unprocessable", `Note too large to index: ${rel} (maximum 2 MB). Exclude its folder or split the note.`);
     const text = fs.readFileSync(abs, "utf8");
     const sha = crypto.createHash("sha256").update(text).digest("hex");
     seen.add(rel);
     const prev = existing.get(rel);
-    if (prev && prev.sha256 === sha) { unchanged++; continue; }
     const parsed = parseNote(text, path.basename(rel));
     const link = linkNote(parsed, contactRefs, propertyRefs);
+    if (prev && prev.sha256 === sha && prev.contactId === link.contactId && prev.propertyId === link.propertyId && prev.linkBasis === link.basis) { unchanged++; continue; }
     if (link.contactId || link.propertyId) linked++;
     const values = { title: parsed.title, tags: parsed.tags, links: parsed.links, frontmatter: parsed.frontmatter, excerpt: parsed.excerpt, wordCount: parsed.wordCount, contactId: link.contactId, propertyId: link.propertyId, linkBasis: link.basis, recordType: recordTypeOf(parsed.frontmatter), sha256: sha, modifiedAt: fs.statSync(abs).mtime.toISOString(), indexedAt: new Date().toISOString() };
     if (prev) { db.update(s.vaultNotes).set(values).where(eq(s.vaultNotes.id, prev.id)).run(); updated++; } else { db.insert(s.vaultNotes).values({ path: rel, ...values }).run(); added++; }
@@ -81,7 +90,8 @@ export function indexVaultIfChanged(): boolean {
     indexed.delete(rel);
   }
   if (!changed && indexed.size > 0) changed = true;
-  if (changed) indexVault();
+  // Entity changes can create new links even when every note is unchanged.
+  indexVault();
   return changed;
 }
 
@@ -115,6 +125,7 @@ export function vaultTasks(): { text: string; note: string; uri: string }[] {
 export function vaultNoteTexts(opts: { folder?: string; limit?: number } = {}): { path: string; title: string; text: string }[] {
   const cfg = vaultConfig();
   if (!cfg.dir || !cfg.exists) throw new AppError("unprocessable", "Obsidian vault is not configured (OBSIDIAN_VAULT_DIR).");
+  if (!cfg.allowClaude) throw new AppError("unprocessable", "Allow vault text to be sent to Claude in Integrations first.");
   indexVaultIfChanged();
   const folder = opts.folder?.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "").toLowerCase();
   const rows = db.select({ path: s.vaultNotes.path, title: s.vaultNotes.title }).from(s.vaultNotes).orderBy(desc(s.vaultNotes.modifiedAt)).all()
@@ -132,14 +143,19 @@ export function writeVaultNote(title: string, content: string, subfolder?: strin
   if (!cfg.dir || !cfg.exists) throw new AppError("unprocessable", "Obsidian vault is not configured (OBSIDIAN_VAULT_DIR).");
   const safeTitle = title.replace(/[\\/:*?"<>|]/g, "-").replace(/\s+/g, " ").trim().slice(0, 120) || "Note";
   const sub = (subfolder ?? "").replace(/\\/g, "/");
-  if (sub.split("/").some((x) => x === "..") || path.posix.isAbsolute(sub)) throw new AppError("bad_request", "Subfolder must be relative.");
+  if (sub.split("/").some((x) => x === "..") || path.posix.isAbsolute(sub) || sub.includes(":")) throw new AppError("bad_request", "Subfolder must be relative.");
   const dirAbs = path.resolve(cfg.dir, path.posix.join(cfg.writeFolder, sub.replace(/^[/.]+/, "")));
   if (!dirAbs.startsWith(cfg.dir + path.sep) && dirAbs !== cfg.dir) throw new AppError("bad_request", "Refusing to write outside the vault.");
+  let ancestor = dirAbs;
+  while (ancestor !== cfg.dir) {
+    if (fs.existsSync(ancestor) && fs.lstatSync(ancestor).isSymbolicLink()) throw new AppError("bad_request", "Refusing to write through a linked folder.");
+    ancestor = path.dirname(ancestor);
+  }
   fs.mkdirSync(dirAbs, { recursive: true });
   let file = path.join(dirAbs, `${safeTitle}.md`);
   let n = 2;
   while (fs.existsSync(file)) file = path.join(dirAbs, `${safeTitle} (${n++}).md`);
-  fs.writeFileSync(file, `---\nsource: Command Center\ncreated: ${new Date().toISOString()}\ntags: [command-center]\n---\n\n${content.trim()}\n`, "utf8");
+  fs.writeFileSync(file, `---\nsource: Command Center\ncreated: ${new Date().toISOString()}\ntags: [command-center]\n---\n\n${content.trim()}\n`, { encoding: "utf8", flag: "wx" });
   const rel = path.relative(cfg.dir, file).replace(/\\/g, "/");
   return { path: rel, uri: obsidianUri(path.basename(cfg.dir), rel) };
 }

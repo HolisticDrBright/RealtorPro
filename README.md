@@ -1,163 +1,179 @@
-# Vanessa Bukowski · SERHANT. — Command Center
+# RealtorPro — Private Command Center
 
-A luxury real estate operating system for one agent: CRM, tasks, call list,
-buyers with criteria, seller pipeline, listings, Kanban sales pipeline, escrow
-timelines, offers, opportunities, income tracking against a $200K goal,
-analytics, calendar, notes, stay-in-touch and follow-up automation — in one
-clean, local-first web app. Seeded with realistic (fictional) Orange County
-luxury data so the dashboard is complete on first launch.
+A local, single-user real-estate CRM for Windows. Contacts, buyer criteria,
+seller pipeline, listings, transactions, tasks, local appointments, notes,
+income tracking and buyer matching share a SQLite database.
 
-## Run it
+This release hardens the `claude/command-center` branch. It is **not a public
+multi-user SaaS**, and it does not include the commercial studios from the
+older AgentOS branch. A new workspace starts empty. Existing data is preserved
+by setup; no sample data is loaded automatically.
 
-```bash
-git clone https://github.com/HolisticDrBright/RealtorPro   # skip if you already have the folder
-cd RealtorPro
-git fetch origin
-git checkout claude/command-center
-npm install
-npm run setup     # creates workspace/command-center.db and seeds sample data
-npm run dev       # http://localhost:3000
+## Start on Windows
+
+Use Node.js 22.12+ or Node.js 24. From this project folder:
+
+```powershell
+npm ci
+npm run setup
+npm run build
+npm start
 ```
 
-Windows PowerShell: run the same commands one per line. Node 22 or 24 is
-required; no compiler is needed (SQLite ships as a prebuilt binary). To start over with
-fresh data: `npm run db:reset` then `npm run setup`.
+Open [RealtorPro](http://127.0.0.1:3000) directly in your browser.
+Development only: `npm run dev` instead of build/start.
+The app binds to 127.0.0.1. Do not expose it through a tunnel, proxy, LAN
+interface, or public host. Mobile layout is supported, but direct phone access
+over the network is intentionally not enabled in this private release.
 
-## What's inside
+The default database is `workspace/command-center.db`. An optional
+`WORKSPACE_DIR` in `.env` changes its location. Use a local folder, not a
+network share or a live cloud-synced SQLite folder. Stop all app instances
+before changing versions or running setup. Setup backs up an existing
+database before migration and never seeds or clears it.
 
-| Area | Where | Notes |
-| --- | --- | --- |
-| Dashboard | `/` | Greeting + date, 7 KPIs, goal progress, **Today's Priorities** (auto-surfaced from overdue tasks, calls due, hot buyers without recent contact, listing activity, escrow deadlines ≤72h, offers awaiting response, listing appointments, uncontacted leads, overdue follow-ups, birthdays), schedule, call list with power dialer, hot buyers, active listings, in escrow, sales chart, income goal tracker, smart alerts, recent activity, buyer matches. Priorities are drag-reorderable. |
-| Tasks | `/tasks` | Today / Upcoming / Overdue / Completed / All, 8 categories, priorities, due date + time, links to client/property/transaction, recurring tasks (daily/weekly/monthly auto-create the next one), drag to reorder or move between days. |
-| Calls | `/calls` | Daily call list with type, priority, reason, last contact, next follow-up; Call / Text / Email / Complete / Reschedule; counters; **Power Dialer** slide-over. Completing a call updates the contact's last-contact date and timeline. |
-| Buyers | `/buyers` | Buyer cards with every criterion, HOT / WARM / NURTURE (hot rises to the top), sent/toured/offers counters, and **Buyer Match** (listings + opportunities scored against price, area, beds/baths/sqft, type, must-haves, deal breakers). |
-| Sellers | `/sellers` | Seller pipeline board (8 stages, drag between) and table. |
-| Listings | `/listings` | Photo cards with price, $/sqft, DOM, showings, offers, open houses, commission, next action, buyer-match count; status filter; moving a listing to **In Escrow** creates the transaction + timeline. |
-| Pipeline | `/pipeline` | 12-stage Kanban of contacts, drag between stages, total / weighted volume and GCI. |
-| Transactions | `/transactions` | Escrow cards with days-to-close and next deadline; detail with editable 11-step timeline (deadlines within 72h highlighted), gross/net math, mark closed (updates YTD, GCI, net, goal, listing and client automatically). |
-| Contacts | `/contacts`, `/contacts/:id` | Full profile, chronological activity timeline, log-a-touch, one-click follow-up scheduling, business totals, buyer/seller profiles, tasks, appointments, notes. One contact row serves as buyer and seller. |
-| Calendar | `/calendar` | Day / Week / Month; appointments + escrow deadlines + dated tasks. |
-| Sales & Income | `/income` | Closed-transaction table (closing date, address, city, side, price, %, gross, referral, split, expenses, net) with totals and Year / Month / Quarter / City / Side filters; **$200K goal tracker** with remaining, monthly target, average, projection, pending, pipeline and *deals needed*. |
-| Reports | `/reports` | Monthly volume / net / closings, averages, listings taken/sold, buyer vs seller, days to close, conversion rates, lead sources (leads, closings, revenue, net, conversion, share). |
-| Notes | `/notes` | Quick capture, pin, attach to contact / property / transaction, search. |
-| Offers | `/offers` | Offer tracker with counters, financing, contingencies and 7 statuses. |
-| Opportunities | `/opportunities` | Off-market / coming soon / pocket / tear-down / investment with buyer matches. |
-| Stay in Touch | `/sphere` | Birthdays, purchase anniversaries, touchpoints, clients not contacted in 60+ days. |
-| Needs Follow-Up | `/followups` | Overdue, hot-no-contact, 7/14/30-day, timeline and check-back buckets with one-click scheduling. |
+## Connect from the app
 
-Global: search bar / **⌘K command palette** (contacts, addresses, phone
-numbers, listings, transactions, notes, tasks, opportunities + commands),
-**+ Add** for Task / Call / Buyer / Seller / Contact / Listing / Transaction /
-Note, notification center, keyboard shortcuts (`n` task, `c` contact, `a` add
-menu, `/` search, `g 1–9` pages, `Esc` close). Sortable/filterable tables,
-slide-over forms, inline status changes, confirm-before-delete, clickable
-phones and emails, empty states, responsive layout.
+Open **Integrations**:
 
-## Architecture
+1. Set your name, brokerage and annual goal. Check commission terms on each deal.
+   Brokerage split means the percentage **paid to the broker/team**, not the
+   percentage you retain. Existing transactions keep their own saved terms.
+2. **Claude:** paste your Anthropic API key, check the model ID and select
+   **Save & test Claude**. No restart needed. This verifies credentials and
+   model access, not generation credits. API usage is billed by Anthropic
+   separately from a Claude subscription.
+3. **Obsidian:** select **Browse folders**, navigate to your vault root
+   (the folder containing `.obsidian`), choose **Use this vault**, and
+   **Save & connect vault**. Or paste the full folder path.
+4. Optionally restrict included/excluded folders. Vault text stays local
+   unless you explicitly enable the Claude-sharing checkbox and save.
+   CRM records you explicitly import can subsequently be used by AI features.
+5. **Import typed notes** reads frontmatter locally. **Read vault with Claude**
+   reads free-form notes using your API account. Both produce a review before
+   saving records.
 
-- **Next.js 15 App Router + React 19 + TypeScript + Tailwind.** One page per
-  section under `src/app/*`, shared shell in `src/components/app/shell.tsx`.
-- **SQLite + Drizzle.** Schema in `src/db/schema.ts`; migrations in
-  `drizzle/`; seed in `src/db/seed.ts` (dated relative to today).
-- **Generic CRUD API.** `GET/POST /api/<entity>` and
-  `GET/PATCH/DELETE /api/<entity>/:id` for every table, driven by
-  `src/lib/registry.ts` (Zod validation, searchable columns, default sort).
-  List filters: `?field=value`, `?q=text`, `?sort=&dir=&limit=`.
-- **Business rules in one place.** `src/services/hooks.ts` runs after
-  create/update: call completed → last contact; listing → in escrow → open
-  transaction + milestones; transaction closed → listing, client, income;
-  recurring task → next occurrence; offer accepted → notification, etc.
-- **Computed endpoints.** `/api/dashboard`, `/api/pipeline`, `/api/income`,
-  `/api/analytics`, `/api/search`, `/api/match`, `/api/followups`,
-  `/api/sphere`, `/api/calendar`.
-- **Pure, tested logic** in `src/lib`: commission/net/goal math, priority
-  ranking, buyer matching, follow-up buckets, date helpers (`npm test`).
+The selected model can be changed. The default `claude-sonnet-4-6` is a
+documented, supported model ID; check [Anthropic's model documentation](https://platform.claude.com/docs/en/models/sonnet-4-6/overview)
+for its capabilities. Availability is checked against your account.
 
-### Data model
+Saved API keys use Windows DPAPI encryption, bound to your Windows account.
+Keys are not returned to the browser, stored in browser storage, or included
+in database snapshots. The settings file contains encrypted key material and
+vault paths; protect your workspace. On other operating systems use the
+environment key fallback; in-app secure key storage is currently Windows-only.
 
-`contacts` (one person; type buyer/seller/past client/lead/agent/vendor/sphere;
-pipeline stage) ← `buyers`, `sellers` (profiles) · `properties` ← `listings`,
-`transactions` (← `milestones`), `offers`, `opportunities` · `tasks`, `calls`,
-`appointments`, `notes`, `activities`, `touchpoints`, `notifications`,
-`settings` (agent, goal, default commission/split). Income is derived from
-transactions: gross = price × %, net = gross − referral − split − expenses.
+An app-saved connection overrides its legacy `.env` setting. Disconnect
+overrides an environment key/path too. Disconnecting a vault removes its
+local index, not your original notes or already imported CRM records.
 
-### Start with your real data
+Vault scans skip hidden and linked directories, reject notes over 2 MB and
+limit traversal to 25,000 entries / 30 nested folders. AI extraction defaults
+to 20 newest notes in the chosen folder, with limits of 240,000 characters and
+five provider requests. Oversized notes are rejected, never silently clipped.
+Choose one client folder at a time. These limits are not a dollar-spend cap.
 
-The sample data exists so every screen has something to show. To replace it:
+## Arrange the dashboard
 
-1. **Wipe the samples.** Integrations → *Your data* → **Start fresh**, or
-   `npm run db:clear` in a terminal. Every record goes; your name, brokerage,
-   income goal and commission defaults stay. (`npm run setup:empty` does
-   migrate + clear in one step on a brand-new install.)
-2. **Fill it**, in any order:
-   - **Obsidian vault** — set `OBSIDIAN_VAULT_DIR` in `.env`, restart. Notes
-     with `type:` frontmatter import with one click. For a vault written in
-     free form, set `OBSIDIAN_ALLOW_CLAUDE=true` and press **Read vault with
-     Claude**: Claude reads the notes and proposes records that you review
-     before anything is saved.
-   - **Paste text** into Integrations → Claude: emails, meeting notes, a
-     spreadsheet export.
-   - **Claude Cowork / Desktop / Claude Code** through the MCP server
-     (`npm run mcp:config`): ask it to read your vault, your inbox export or an
-     MLS export you downloaded and call `import_records`.
-   - **By hand** with + Add.
-3. Everything imported is matched by natural keys (email → phone → name for
-   people, address for properties), so running an import twice updates rather
-   than duplicates.
+Click **Arrange dashboard**. Drag a ⋮⋮ handle onto another tile/card to swap
+them within the same group. Mouse and touch input are supported. Alternatively
+focus a handle and use arrow keys, or use the visible ← / → buttons.
+**Reset layout** restores the defaults. Layout is saved in that browser only;
+clearing browser storage removes it. Reordering individual priorities remains
+a separate control.
 
-### Claude and Obsidian (connected)
+## Review Inbox and Claude Desktop / Code
 
-Open **Integrations** in the sidebar. Both are optional and off until you add a
-line to `.env` and restart.
+`npm run mcp:config` prints the local MCP configuration. Add it to your
+desktop agent's MCP settings and keep this app running.
 
-**Claude** — `ANTHROPIC_API_KEY=` (from console.anthropic.com).
-- Dashboard → *✦ Ask Claude for a game plan* writes the morning briefing from
-  the facts on the page (escrow deadlines, calls, hot buyers, goal).
-- Integrations → *Extract records with Claude*: paste an email thread, meeting
-  notes, a lead sheet or a spreadsheet dump. Claude returns contacts, buyers,
-  sellers, properties, listings, escrows, tasks and notes; you review the list
-  and press Import. Records are upserted by email / phone / name / address, so
-  re-importing never duplicates a person.
+The agent can read CRM records, search, and propose create/update/delete/import
+operations. Writes are queued in **Review Inbox**. Agents cannot approve their
+own changes or change connections, clear data, or restore backups.
 
-**Obsidian** — `OBSIDIAN_VAULT_DIR=` (path to your vault folder).
-- Notes are read in place and indexed automatically whenever a file changes.
-  Any note whose frontmatter, title or `[[wikilink]]` names a contact or
-  address appears on that contact's profile and in Notes; `- [ ]` checkboxes in
-  today's daily note or in notes tagged `#command-center` show in Today's
-  Priorities.
-- Notes with `type: contact | buyer | seller | property | listing | transaction
-  | task | opportunity` in their frontmatter are importable: Integrations →
-  *Import records from vault* → review → Import. Field reference is on that
-  page.
-- The app only ever writes into the `Command Center/` folder of your vault.
+Review full proposed fields before approving. Approvals:
+- Require an existing stored proposal, not a fresh arbitrary bundle.
+- Expire after a day and reject when CRM data changes after preview.
+- Apply transactionally, with a verified database backup first.
+- Return the previous result on retry instead of applying twice.
 
-**Claude Cowork / Claude Desktop / Claude Code writing to the dashboard.**
-The app ships an MCP server (`scripts/mcp-server.ts`) that exposes
-`get_dashboard`, `search`, `list_records`, `get_record`, `create_record`,
-`update_record`, `delete_record`, `import_records`, `add_tasks` and
-`log_activity`. With the app running, `npm run mcp:config` prints the config
-block; paste it into Claude Desktop / Cowork → Settings → Developer → Edit
-Config (or use `claude mcp add`). Then a Claude agent that has searched your
-MLS or read your inbox can call `import_records` / `add_tasks` and the
-dashboard updates on its next refresh. Writes go through the same validation
-and business rules as the UI. The app never scrapes listing sites itself; the
-agent brings the data it is authorized to use.
+Reject and regenerate stale proposals. Only connect trusted agents: MCP read
+access includes your CRM information. Obsidian privacy controls apply to
+original vault text, not independent file access you give another application.
 
-### Integration points (not yet connected)
+## Backups and recovery
 
-- **Google Calendar / Gmail** → sync into `appointments` / activity timeline
-  via `POST /api/appointments` and `/api/activities` (add `src/services/google.ts`),
-  or let a Claude agent with your Gmail connector call `add_tasks` over MCP.
-- **MLS / real-estate APIs** → `POST /api/import/apply` with `listings` +
-  `properties` (same bundle the MCP `import_records` tool uses).
-- **Contact sync** → the same bundle's `contacts` (matched on email/phone/name).
-- **SMS / calling** → log `calls`/`activities`; the UI already links `tel:`/`sms:`.
-- **Commission accounting / documents** → `transactions.notes` today; add a
-  `documents` table alongside `milestones`.
+Integrations → **Backups & recovery** creates and verifies a database snapshot.
+Snapshots are also made before approved AI changes and clearing records.
+Choose a snapshot and type **RESTORE** to restore it. Current data is backed
+up first. Restored pending proposals are rejected to prevent old approvals.
 
-All business rules stay in `src/services/hooks.ts`, so a new integration just
-writes rows through the same API and the dashboard, pipeline and income update
-automatically.
+Snapshots contain private CRM data and cached vault excerpts. They are **not
+encrypted database files**, do not include API keys, and do not back up the
+original Obsidian vault. Keep a separate protected off-device backup of both
+the workspace and vault. Automatic snapshots are not automatically pruned;
+monitor disk space.
 
-Sample data is fictional. The database lives in `workspace/` and is gitignored.
+The app only restores snapshots with the same database schema. To recover a
+pre-upgrade snapshot, stop the app and use the matching previous app version
+with a separate workspace copy. Keep the current workspace intact.
+
+Unsafe `db:reset` and `db:clear` CLI operations are disabled. Use the backed-up
+clear action in the app. Demo seeding requires both `ALLOW_DEMO_DATA=YES`
+and a separate workspace path ending in `-demo`; never use this for real data.
+
+## Verification
+
+```powershell
+npm test
+npm run typecheck
+npm run lint
+npm audit
+npm run build
+```
+
+Tests use temporary synthetic fixtures, not production data. The app itself
+does not ship active fixture records.
+
+`npm run test:browser` runs real Chromium/Edge UI checks against an isolated
+test server at `http://127.0.0.1:3100` (override `TEST_URL`). It deliberately
+refuses a connected Claude account or a non-test vault. On Windows it uses
+installed Edge; other platforms need `npx playwright install chromium`.
+See `scripts/verify-browser.mjs` for fixture checks. A live Anthropic generation
+and the user's own vault still require a user-controlled acceptance test.
+
+To prepare the browser test, start a second instance using
+`WORKSPACE_DIR=../RealtorPro-browser-workspace` and `PORT=3100`, run setup,
+then connect `tests/fixtures/realtorpro-browser-vault` from Integrations
+with Claude disconnected and vault sharing off. Run `npm run test:browser`.
+After that, `node scripts/verify-mcp.mjs` checks the real stdio connection.
+Never point these verification scripts at your personal workspace.
+
+## Not implemented in this branch
+
+- Gmail and Google Calendar OAuth/sync. Calendar currently stores local events.
+- Follow Up Boss integration.
+- OM Studio, Rent Roll Studio, Comp Lab, Signal Scout, media/video generation.
+- Direct MLS/Zillow ingestion or licensed property-photo acquisition.
+- Multi-user accounts, remote access, background job durability, automatic
+  off-device backup and a packaged installer.
+
+Do not treat local empty states or disabled integrations as live connections.
+Imports use conservative natural-key matching; unit addresses and city
+differences are preserved, and ambiguous people require resolution. Historical
+listing/transaction reconciliation still needs human review. No software
+matching replaces verification of the underlying property and client records.
+
+## Architecture and security scope
+
+Next.js 15 / React 19 / TypeScript / Tailwind; Drizzle over SQLite in WAL mode.
+Route handlers validate input; business hooks update related records locally.
+Connection settings are server-only files. The launcher creates a random local
+session token; browser sessions use an HttpOnly SameSite cookie. APIs reject
+cross-site/unauthenticated requests and non-localhost hosts. MCP uses a local
+bearer token restricted to reads and proposal creation.
+
+This protects against ordinary cross-site requests, not malicious software
+running as your Windows account. SQLite, snapshots and local session files
+inherit your workspace's filesystem access. Use a protected Windows account,
+full-disk encryption and trusted software. Do not host this release publicly.

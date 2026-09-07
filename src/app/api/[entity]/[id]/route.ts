@@ -34,9 +34,11 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     if ("email" in patch && patch.email === "") patch.email = null;
     const t = tables[entity];
     const hasUpdatedAt = "updatedAt" in t;
-    db.update(t).set({ ...patch, ...(hasUpdatedAt ? { updatedAt: new Date().toISOString() } : {}) } as never).where(eq((t as unknown as { id: never }).id, id)).run();
-    const after = load(entity, id);
-    afterUpdate(entity, before, after);
+    db.transaction(() => {
+      db.update(t).set({ ...patch, ...(hasUpdatedAt ? { updatedAt: new Date().toISOString() } : {}) } as never).where(eq((t as unknown as { id: never }).id, id)).run();
+      const after = load(entity, id);
+      afterUpdate(entity, before, after);
+    });
     return ok({ item: load(entity, id) });
   } catch (err) { return errorResponse(err); }
 }

@@ -21,8 +21,8 @@ export function errorResponse(err: unknown): NextResponse {
     const issues = err.issues.map((i) => `${i.path.join(".") || "value"}: ${i.message}`);
     return NextResponse.json({ error: { code: "validation_error", message: issues.join("; "), details: err.issues } }, { status: 422 });
   }
-  console.error(err);
-  return NextResponse.json({ error: { code: "internal_error", message: "Something went wrong. Your data is safe." } }, { status: 500 });
+  console.error("Request failed", err instanceof Error ? err.name : "UnknownError");
+  return NextResponse.json({ error: { code: "internal_error", message: "The request failed. Refresh to check the result before trying again." } }, { status: 500 });
 }
 
 export function ok<T>(data: T, init?: { status?: number }): NextResponse {

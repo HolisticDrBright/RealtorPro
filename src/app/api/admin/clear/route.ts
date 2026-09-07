@@ -4,11 +4,13 @@ import { readJson } from "@/lib/api";
 import { clearAllData } from "@/services/admin";
 import { indexVaultIfChanged } from "@/services/obsidian";
 import { errorResponse, ok } from "@/lib/errors";
+import { createBackup } from "@/services/backups";
 export const runtime = "nodejs";
 /** Delete every record (sample data included). Settings are kept. Requires confirm: "DELETE". */
 export async function POST(req: NextRequest) {
   try {
     await readJson(req, z.object({ confirm: z.literal("DELETE") }));
+    await createBackup();
     const removed = clearAllData();
     try { indexVaultIfChanged(); } catch { /* vault optional */ }
     return ok({ removed, total: Object.values(removed).reduce((a, b) => a + b, 0) });

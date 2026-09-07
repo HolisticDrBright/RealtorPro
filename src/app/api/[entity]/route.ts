@@ -49,8 +49,11 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ entity: st
     const entity = resolve((await ctx.params).entity);
     const input = await readJson(req, schemas[entity]);
     const clean = Object.fromEntries(Object.entries(input).filter(([, v]) => v !== undefined && v !== ""));
-    const row = db.insert(tables[entity]).values(clean as never).returning().get() as Record<string, unknown>;
-    afterCreate(entity, row);
+    const row = db.transaction(() => {
+      const created = db.insert(tables[entity]).values(clean as never).returning().get() as Record<string, unknown>;
+      afterCreate(entity, created);
+      return created;
+    });
     return ok({ item: row }, { status: 201 });
   } catch (err) { return errorResponse(err); }
 }

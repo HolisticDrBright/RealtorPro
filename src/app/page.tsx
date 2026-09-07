@@ -8,6 +8,7 @@ import { fmtDate, fmtTime, relative } from "@/lib/dates";
 import { Avatar, Badge, Bars, Card, Donut, Empty, ErrorBox, Kpi, Loading, Progress, PropertyPhoto } from "@/components/ui/primitives";
 import { quickAdd } from "@/components/app/shell";
 import type { PriorityItem } from "@/lib/priorities";
+import { normalizeLayout, swapLayout } from "@/lib/layout-order";
 
 interface Dash {
   today: string; greeting: string; agent: { name: string };
@@ -39,13 +40,13 @@ function useLayoutOrder(key: string, defaults: string[]) {
   useEffect(() => {
     try {
       const saved: unknown = JSON.parse(localStorage.getItem(key) ?? "null");
-      if (Array.isArray(saved)) setIds([...saved.filter((id) => typeof id === "string" && defaults.includes(id)), ...defaults.filter((id) => !saved.includes(id))]);
+      setIds(normalizeLayout(saved, defaults));
     } catch { /* no saved layout */ }
   }, [key, defaults]);
   const move = useCallback((from: string, to: string) => setIds((prev) => {
     const i = prev.indexOf(from), j = prev.indexOf(to);
     if (i < 0 || j < 0 || i === j) return prev;
-    const next = [...prev]; next.splice(i, 1); next.splice(j, 0, from);
+    const next = swapLayout(prev, from, to);
     try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* storage unavailable */ }
     return next;
   }), [key]);
@@ -66,33 +67,49 @@ const LABELS: Record<string, string> = { "kpi-volume": "YTD Sales Volume", "kpi-
  */
 function Sortable({ id, className = "", state, children }: { id: string; className?: string; state: DragState; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
+  const cleanup = useRef<(() => void) | null>(null);
+  useEffect(() => () => cleanup.current?.(), []);
   const isTarget = state.over === id && !!state.drag && state.drag !== id;
   const selector = `[data-sortable][data-group="${state.group}"]`;
-  const under = (x: number, y: number) => document.elementFromPoint(x, y)?.closest<HTMLElement>(selector)?.dataset.sortable ?? null;
+  const under = (x: number, y: number) => {
+    for (const cell of document.querySelectorAll<HTMLElement>(selector)) {
+      if (cell.dataset.sortable === id) continue;
+      const r = cell.getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return cell.dataset.sortable ?? null;
+    }
+    return null;
+  };
 
   function begin(e: React.PointerEvent<HTMLSpanElement>) {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     e.preventDefault();
     const el = ref.current; if (!el) return;
     const startX = e.clientX, startY = e.clientY;
+    const pointerId = e.pointerId;
+    e.currentTarget.setPointerCapture(pointerId);
     let lifted = false;
     state.setDrag(id);
     const onMove = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
       const dx = ev.clientX - startX, dy = ev.clientY - startY;
-      if (!lifted && Math.hypot(dx, dy) > 4) { lifted = true; el.classList.add("lifted"); }
-      if (lifted) el.style.transform = `translate(${dx}px, ${dy}px)`;
+      if (!lifted && Math.hypot(dx, dy) > 4) lifted = true;
       const o = under(ev.clientX, ev.clientY);
       state.setOver(o && o !== id ? o : null);
       // Nudge the page when dragging near the top or bottom edge (long pages, phones).
       if (ev.clientY < 70) window.scrollBy(0, -10); else if (ev.clientY > window.innerHeight - 70) window.scrollBy(0, 10);
     };
     const finish = (ev: PointerEvent) => {
-      window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", finish); window.removeEventListener("pointercancel", finish);
-      el.classList.remove("lifted"); el.style.transform = "";
-      const o = ev.type === "pointerup" ? under(ev.clientX, ev.clientY) : null;
+      if (ev.pointerId !== pointerId) return;
+      const o = lifted && ev.type === "pointerup" ? under(ev.clientX, ev.clientY) : null;
+      cleanup.current?.();
       if (o && o !== id) state.onMove(id, o);
       state.setDrag(null); state.setOver(null);
     };
+    const cancel = (ev: KeyboardEvent) => { if (ev.key === "Escape") { cleanup.current?.(); state.setDrag(null); state.setOver(null); } };
+    cleanup.current = () => {
+      window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", finish); window.removeEventListener("pointercancel", finish); window.removeEventListener("keydown", cancel); cleanup.current = null;
+    };
+    window.addEventListener("keydown", cancel);
     window.addEventListener("pointermove", onMove); window.addEventListener("pointerup", finish); window.addEventListener("pointercancel", finish);
   }
   function keys(e: React.KeyboardEvent<HTMLSpanElement>) {
@@ -103,6 +120,10 @@ function Sortable({ id, className = "", state, children }: { id: string; classNa
   return (
     <div ref={ref} data-sortable={id} data-group={state.group} className={`sortable ${className} ${state.drag === id ? "dragging" : ""} ${isTarget ? "drop-target" : ""}`}>
       <span className="drag-handle" role="button" tabIndex={0} title="Drag to move this box (arrow keys also work)" aria-label={`Move ${LABELS[id] ?? id}`} onPointerDown={begin} onKeyDown={keys}>⋮⋮</span>
+      <div className="layout-buttons" aria-label={`Reorder ${LABELS[id] ?? id}`}>
+        <button type="button" aria-label={`Move ${LABELS[id] ?? id} earlier`} disabled={state.ids.indexOf(id) === 0} onClick={() => state.onMove(id, state.ids[state.ids.indexOf(id) - 1])}>←</button>
+        <button type="button" aria-label={`Move ${LABELS[id] ?? id} later`} disabled={state.ids.indexOf(id) === state.ids.length - 1} onClick={() => state.onMove(id, state.ids[state.ids.indexOf(id) + 1])}>→</button>
+      </div>
       {children}
     </div>
   );
@@ -114,12 +135,13 @@ export default function DashboardPage() {
   const [pdrag, setPdrag] = useState<string | null>(null);
   const [briefing, setBriefing] = useState<string | null>(null);
   const [briefBusy, setBriefBusy] = useState(false);
+  const [editingLayout, setEditingLayout] = useState(false);
   const kpiLayout = useLayoutOrder("cc.dashboard.kpis", KPI_ORDER);
   const cardLayout = useLayoutOrder("cc.dashboard.cards", CARD_ORDER);
   const [drag, setDrag] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const kpiDrag: DragState = { group: "kpis", ids: kpiLayout.ids, drag, over, setDrag, setOver, onMove: kpiLayout.move };
-  const cardDrag: DragState = { group: "cards", ids: cardLayout.ids, drag, over, setDrag, setOver, onMove: cardLayout.move };
+  const cardDrag: DragState = { group: "cards", ids: cardLayout.ids.filter((id) => id !== "matches" || !!data?.matches.length), drag, over, setDrag, setOver, onMove: cardLayout.move };
   if (loading) return <Loading rows={6} />;
   if (error || !data) return <ErrorBox message={error ?? "No data"} onRetry={reload} />;
   const k = data.kpis, g = data.goal;
@@ -138,7 +160,7 @@ export default function DashboardPage() {
     const r = await api.post<{ text: string | null; configured: boolean }>("/api/claude/briefing");
     setBriefBusy(false);
     if (!r.ok) { toast(r.message ?? "Claude failed", "err"); return; }
-    if (!r.data.configured) { toast("Add ANTHROPIC_API_KEY in .env to let Claude write the briefing (see Integrations)", "err"); return; }
+    if (!r.data.configured) { toast("Connect Claude on the Integrations page to write a briefing.", "err"); return; }
     setBriefing(r.data.text);
   }
 
@@ -316,11 +338,11 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="space-y-5 fade-in">
+    <div className={`space-y-5 fade-in ${editingLayout ? "editing-layout" : ""}`}>
       <div className="flex items-end gap-4 flex-wrap">
         <div><h1 className="text-[22px] font-semibold tracking-tight flex items-center gap-2">{data.greeting} <span className="text-gold" aria-hidden="true">☼</span></h1><div className="text-[13px] text-ink-3">{fmtDate(data.today, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}</div></div>
         <div className="ml-auto text-[12px] text-ink-3 flex items-center gap-3">
-          <span className="hidden md:inline">Drag the ⋮⋮ handle on any box to rearrange</span>
+          <button className="btn" aria-pressed={editingLayout} onClick={() => setEditingLayout((v) => !v)}>{editingLayout ? "Done arranging" : "Arrange dashboard"}</button>
           {customLayout && <button className="card-link !ml-0 underline-offset-2 hover:underline" onClick={() => { kpiLayout.reset(); cardLayout.reset(); toast("Layout reset"); }}>Reset layout</button>}
         </div>
       </div>

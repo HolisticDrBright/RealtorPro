@@ -70,3 +70,9 @@ button { font: inherit; color: inherit; }
 .sortable.lifted { z-index: 40; pointer-events: none; box-shadow: theme(boxShadow.pop); }
 @media (hover: none) { .drag-handle { opacity: .75; width: 20px; height: 32px; top: 6px; left: 1px; } }
 .sortable.dragging * { user-select: none; -webkit-user-select: none; }
+.layout-buttons { display: none; position: absolute; right: 6px; top: 4px; z-index: 3; gap: 4px; }
+.layout-buttons button { background: theme(colors.panel); border: 1px solid theme(colors.line.DEFAULT); border-radius: 6px; width: 32px; height: 28px; }
+.layout-buttons button:disabled { opacity: .3; }
+.editing-layout .layout-buttons { display: flex; }
+.editing-layout .sortable { padding-top: 36px; outline: 1px dashed theme(colors.ink.3); }
+.editing-layout .drag-handle { opacity: 1; top: 3px; width: 36px; height: 30px; }

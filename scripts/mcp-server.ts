@@ -11,12 +11,19 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import fs from "node:fs";
+import nodePath from "node:path";
+import { loadEnvConfig } from "@next/env";
+loadEnvConfig(process.cwd());
 
 const BASE = (process.env.COMMAND_CENTER_URL ?? "http://localhost:3000").replace(/\/$/, "");
 const ENTITIES = ["contacts", "buyers", "sellers", "properties", "listings", "transactions", "milestones", "offers", "tasks", "calls", "appointments", "notes", "activities", "opportunities", "touchpoints", "notifications"] as const;
 
 async function call(method: string, path: string, body?: unknown) {
-  const res = await fetch(`${BASE}${path}`, { method, headers: body !== undefined ? { "content-type": "application/json" } : undefined, body: body !== undefined ? JSON.stringify(body) : undefined });
+  const parsed = new URL(BASE);
+  if (!["localhost", "127.0.0.1", "[::1]"].includes(parsed.hostname)) throw new Error("MCP only connects to localhost.");
+  const token = fs.readFileSync(nodePath.resolve(process.env.WORKSPACE_DIR || "./workspace", ".runtime-token"), "utf8").trim();
+  const res = await fetch(`${BASE}${path}`, { method, headers: { Authorization: `Bearer ${token}`, ...(body !== undefined ? { "content-type": "application/json" } : {}) }, body: body !== undefined ? JSON.stringify(body) : undefined });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error?.message ?? `${method} ${path} failed (${res.status})`);
   return data;
@@ -36,16 +43,16 @@ server.registerTool("list_records", { description: "List rows of a collection wi
 
 server.registerTool("get_record", { description: "Fetch one row by id.", inputSchema: { entity: z.enum(ENTITIES), id: z.string() } }, async ({ entity, id }) => text(await call("GET", `/api/${entity}/${id}`)));
 
-server.registerTool("create_record", { description: "Create one row. Fields follow the app schema (contacts: firstName, lastName, phone, email, type, leadSource…; tasks: title, priority, category, dueDate, dueTime, contactId…; listings: propertyId, listPrice, status…). Prefer import_records when adding several related records at once.", inputSchema: { entity: z.enum(ENTITIES), fields: z.record(z.unknown()) } }, async ({ entity, fields }) => text(await call("POST", `/api/${entity}`, fields)));
+server.registerTool("create_record", { description: "Propose creating one row for human approval in Review Inbox. Fields follow the app schema (contacts: firstName, lastName, phone, email, type, leadSource…; tasks: title, priority, category, dueDate, dueTime, contactId…; listings: propertyId, listPrice, status…). Prefer import_records when adding several related records at once.", inputSchema: { entity: z.enum(ENTITIES), fields: z.record(z.unknown()) } }, async ({ entity, fields }) => text(await call("POST", "/api/reviews", { payload: { action: "create", entity, fields } })));
 
-server.registerTool("update_record", { description: "Patch fields on one row (e.g. mark a task done with {completedAt: ISO}, move a listing with {status:'in_escrow'}, set a contact's nextFollowUpAt).", inputSchema: { entity: z.enum(ENTITIES), id: z.string(), fields: z.record(z.unknown()) } }, async ({ entity, id, fields }) => text(await call("PATCH", `/api/${entity}/${id}`, fields)));
+server.registerTool("update_record", { description: "Propose patching fields on one row (e.g. mark a task done with {completedAt: ISO}, move a listing with {status:'in_escrow'}, set a contact's nextFollowUpAt).", inputSchema: { entity: z.enum(ENTITIES), id: z.string(), fields: z.record(z.unknown()) } }, async ({ entity, id, fields }) => text(await call("POST", "/api/reviews", { payload: { action: "update", entity, id, fields } })));
 
-server.registerTool("delete_record", { description: "Delete one row. Ask the user before deleting anything important.", inputSchema: { entity: z.enum(ENTITIES), id: z.string() } }, async ({ entity, id }) => text(await call("DELETE", `/api/${entity}/${id}`)));
+server.registerTool("delete_record", { description: "Propose deleting one row. The user must approve in Review Inbox.", inputSchema: { entity: z.enum(ENTITIES), id: z.string() } }, async ({ entity, id }) => text(await call("POST", "/api/reviews", { payload: { action: "delete", entity, id } })));
 
 server.registerTool("import_records", {
-  description: "Upsert a batch of related records by natural keys (contacts by email/phone/name, properties by address, listings by property, transactions by property+price). Use this after finding new MLS deals or reading email: pass listings/properties/contacts/tasks/notes together. Set dryRun=true first to preview.",
+  description: "Propose importing a batch of related records by natural keys (contacts by email/phone/name, properties by address, listings by property, transactions by property+price). Use this after finding new MLS deals or reading email: pass listings/properties/contacts/tasks/notes together. Set dryRun=true first to preview.",
   inputSchema: {
-    dryRun: z.boolean().default(false),
+    dryRun: z.boolean().default(true),
     source: z.string().default("Claude"),
     contacts: z.array(z.object({ name: z.string(), phone: z.string().optional(), email: z.string().optional(), type: z.string().optional(), leadSource: z.string().optional(), priceMin: z.number().optional(), priceMax: z.number().optional(), preferredAreas: z.array(z.string()).optional(), notes: z.string().optional(), nextFollowUpAt: z.string().optional(), buyer: z.record(z.unknown()).optional(), seller: z.record(z.unknown()).optional() })).optional(),
     properties: z.array(z.object({ address: z.string(), city: z.string().optional(), zip: z.string().optional(), beds: z.number().optional(), baths: z.number().optional(), sqft: z.number().optional(), lotSqft: z.number().optional(), propertyType: z.string().optional(), yearBuilt: z.number().optional(), view: z.string().optional(), notes: z.string().optional() })).optional(),
@@ -57,22 +64,21 @@ server.registerTool("import_records", {
   },
 }, async ({ dryRun, source, ...bundle }) => {
   if (dryRun) return text(await call("POST", "/api/import/preview", { bundle, source }));
-  return text(await call("POST", "/api/import/apply", { bundle, source }));
+  return text(await call("POST", "/api/import/preview", { bundle, source }));
 });
 
 server.registerTool("add_tasks", { description: "Add to-dos to today's dashboard (e.g. from email). Each: title, optional priority (critical|high|medium|low), category, dueDate (YYYY-MM-DD, default today), dueTime (HH:MM), contactName, notes.", inputSchema: { tasks: z.array(z.object({ title: z.string(), priority: z.string().optional(), category: z.string().optional(), dueDate: z.string().optional(), dueTime: z.string().optional(), contactName: z.string().optional(), notes: z.string().optional() })) } }, async ({ tasks }) => {
   const today = new Date().toISOString().slice(0, 10);
-  return text(await call("POST", "/api/import/apply", { source: "Claude", bundle: { tasks: tasks.map((t) => ({ ...t, dueDate: t.dueDate ?? today })) } }));
+  return text(await call("POST", "/api/import/preview", { source: "Claude", bundle: { tasks: tasks.map((t) => ({ ...t, dueDate: t.dueDate ?? today })) } }));
 });
 
-server.registerTool("log_activity", { description: "Log a touch on a contact's timeline (call, text, email, meeting, note) and update their last-contact date.", inputSchema: { contactId: z.string(), type: z.enum(["call", "text", "email", "showing", "meeting", "note"]), summary: z.string() } }, async ({ contactId, type, summary }) => {
-  await call("POST", "/api/activities", { contactId, type, summary, occurredAt: new Date().toISOString() });
-  return text(await call("PATCH", `/api/contacts/${contactId}`, { lastContactAt: new Date().toISOString() }));
+server.registerTool("log_activity", { description: "Propose a touch for a contact's timeline (call, text, email, meeting, note). Requires human approval in Review Inbox.", inputSchema: { contactId: z.string(), type: z.enum(["call", "text", "email", "showing", "meeting", "note"]), summary: z.string() } }, async ({ contactId, type, summary }) => {
+  return text(await call("POST", "/api/reviews", { payload: { action: "create", entity: "activities", fields: { contactId, type, summary, occurredAt: new Date().toISOString() } } }));
 });
 
 async function main() {
 if (process.argv.includes("--config")) {
-  const cfg = { mcpServers: { "command-center": { command: "npm", args: ["run", "--silent", "mcp"], cwd: process.cwd(), env: { COMMAND_CENTER_URL: BASE } } } };
+  const cfg = { mcpServers: { "command-center": { command: process.execPath, args: [nodePath.resolve("node_modules/tsx/dist/cli.mjs"), nodePath.resolve("scripts/mcp-server.ts")], cwd: process.cwd(), env: { COMMAND_CENTER_URL: BASE, WORKSPACE_DIR: nodePath.resolve(process.env.WORKSPACE_DIR || "./workspace") } } } };
   console.log(JSON.stringify(cfg, null, 2));
   console.log(`\nPaste the "command-center" entry into Claude Desktop / Cowork → Settings → Developer → Edit Config, or run:\n  claude mcp add command-center --cwd "${process.cwd()}" -- npm run --silent mcp`);
 } else {

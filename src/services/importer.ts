@@ -5,6 +5,7 @@ import { db } from "@/db";
 import * as s from "@/db/schema";
 import { afterCreate, afterUpdate, logActivity } from "./hooks";
 import { parseMoney } from "@/lib/obsidian";
+import { AppError } from "@/lib/errors";
 
 /**
  * One import pipeline for every source (Obsidian frontmatter, Claude
@@ -42,27 +43,44 @@ export interface ImportReport { created: Record<string, number>; updated: Record
 const norm = (v: string | null | undefined) => (v ?? "").trim().toLowerCase();
 const digits = (v: string | null | undefined) => (v ?? "").replace(/\D/g, "").slice(-10);
 const now = () => new Date().toISOString();
-const clean = <T extends Record<string, unknown>>(o: T) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined && v !== null && v !== "")) as Partial<T>;
+const clean = <T extends Record<string, unknown>>(o: T) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && !v.length))) as Partial<T>;
 
 function splitName(full: string) { const parts = full.trim().split(/\s+/); return { firstName: parts[0] ?? "", lastName: parts.slice(1).join(" ") }; }
 
 export function findContact(name?: string | null, email?: string | null, phone?: string | null) {
   const all = db.select().from(s.contacts).all();
-  if (email) { const c = all.find((x) => norm(x.email) === norm(email)); if (c) return c; }
-  if (phone && digits(phone).length >= 7) { const c = all.find((x) => digits(x.phone) === digits(phone)); if (c) return c; }
-  if (name) { const c = all.find((x) => norm(`${x.firstName} ${x.lastName}`) === norm(name)); if (c) return c; }
-  return null;
+  const strong = all.filter((x) => (email && norm(x.email) === norm(email)) || (phone && digits(phone).length >= 7 && digits(x.phone) === digits(phone)));
+  if (strong.length > 1) throw new AppError("conflict", `Conflicting contact identifiers for ${name}. Resolve them before importing.`);
+  if (strong.length === 1) {
+    const c = strong[0];
+    if ((email && c.email && norm(email) !== norm(c.email)) || (phone && c.phone && digits(phone) !== digits(c.phone))) throw new AppError("conflict", `Contact details conflict for ${name}. Edit the existing contact explicitly before importing.`);
+    return c;
+  }
+  const named = name ? all.filter((x) => norm(`${x.firstName} ${x.lastName}`) === norm(name) && !(email && x.email && norm(email) !== norm(x.email)) && !(phone && x.phone && digits(phone) !== digits(x.phone))) : [];
+  if (named.length > 1) throw new AppError("conflict", `More than one contact is named ${name}. Add an email or phone to identify the person.`);
+  return named[0] ?? null;
 }
-export function findProperty(address: string) {
-  const a = norm(address);
-  return db.select().from(s.properties).all().find((p) => norm(p.address) === a || a.startsWith(norm(p.address)) || norm(p.address).startsWith(a.split(",")[0])) ?? null;
+export function findProperty(address: string, city?: string | null) {
+  const normalize = (v: string) => norm(v).replace(/\s+/g, " ").replace(/\s*,\s*/g, ",");
+  const matches = db.select().from(s.properties).all().filter((p) => normalize(p.address) === normalize(address) && (!city || !p.city || norm(p.city) === norm(city)));
+  if (matches.length > 1) throw new AppError("conflict", `Multiple properties match ${address}. Include the city and full unit address.`);
+  return matches[0] ?? null;
 }
 
 /** Apply a bundle. `dryRun` returns the report without writing. */
 export function applyImport(bundle: ImportBundleT, opts: { dryRun?: boolean; source?: string } = {}): ImportReport {
+  // Preview runs the identical write path in a rolled-back transaction, so
+  // nested records, deduplication and hooks agree with the approved import.
+  const rollback = Symbol("preview");
+  let result!: ImportReport;
+  try { db.transaction(() => { result = executeImport(bundle, { source: opts.source }); if (opts.dryRun) throw rollback; }); }
+  catch (err) { if (err !== rollback) throw err; }
+  return result;
+}
+function executeImport(bundle: ImportBundleT, opts: { source?: string }): ImportReport {
   const report: ImportReport = { created: {}, updated: {}, skipped: [] };
   const bump = (k: "created" | "updated", e: string) => (report[k][e] = (report[k][e] ?? 0) + 1);
-  const dry = !!opts.dryRun;
+  const dry = false;
   const src = opts.source ?? "import";
 
   const ensureContact = (name: string | null | undefined, extra: Record<string, unknown> = {}) => {
@@ -76,7 +94,7 @@ export function applyImport(bundle: ImportBundleT, opts: { dryRun?: boolean; sou
     return row;
   };
   const ensureProperty = (address: string, extra: Record<string, unknown> = {}) => {
-    const existing = findProperty(address);
+    const existing = findProperty(address, extra.city as string | undefined);
     if (existing) { if (!dry && Object.keys(clean(extra)).length) db.update(s.properties).set({ ...clean(extra), updatedAt: now() } as never).where(eq(s.properties.id, existing.id)).run(); return existing; }
     if (dry) { bump("created", "properties"); return { id: `dry-${address}` } as typeof s.properties.$inferSelect; }
     const row = db.insert(s.properties).values({ address, city: (extra.city as string) ?? "", ...clean(extra) } as never).returning().get();
@@ -105,7 +123,7 @@ export function applyImport(bundle: ImportBundleT, opts: { dryRun?: boolean; sou
     } else if (seller && dry) bump(db.select().from(s.sellers).where(eq(s.sellers.contactId, contact?.id ?? "")).get() ? "updated" : "created", "sellers");
   }
 
-  for (const p of bundle.properties) { const { address, ...rest } = p; const existed = !!findProperty(address); ensureProperty(address, rest); if (existed) bump("updated", "properties"); }
+  for (const p of bundle.properties) { const { address, ...rest } = p; const existed = !!findProperty(address, rest.city); ensureProperty(address, rest); if (existed) bump("updated", "properties"); }
 
   for (const l of bundle.listings) {
     const { address, city, sellerName, listPrice, ...rest } = l;
@@ -133,7 +151,7 @@ export function applyImport(bundle: ImportBundleT, opts: { dryRun?: boolean; sou
     const { title, contactName, address, ...rest } = k;
     const contact = contactName ? findContact(contactName) : null;
     const prop = address ? findProperty(address) : null;
-    const existing = db.select().from(s.tasks).all().find((x) => norm(x.title) === norm(title) && (x.dueDate ?? null) === (rest.dueDate ?? null));
+    const existing = db.select().from(s.tasks).all().find((x) => norm(x.title) === norm(title) && (x.dueDate ?? null) === (rest.dueDate ?? null) && x.contactId === (contact?.id ?? null) && x.propertyId === (prop?.id ?? null));
     if (existing) { report.skipped.push(`Task already exists: ${title}`); continue; }
     if (!dry) db.insert(s.tasks).values({ title, ...clean({ ...rest, priority: rest.priority ?? undefined, category: rest.category ?? undefined }), contactId: contact?.id ?? null, propertyId: prop?.id ?? null } as never).run();
     bump("created", "tasks");
@@ -149,7 +167,7 @@ export function applyImport(bundle: ImportBundleT, opts: { dryRun?: boolean; sou
   for (const n of bundle.notes) {
     const contact = n.contactName ? findContact(n.contactName) : null;
     const prop = n.address ? findProperty(n.address) : null;
-    const dup = db.select().from(s.notes).all().find((x) => norm(x.body) === norm(n.body));
+    const dup = db.select().from(s.notes).all().find((x) => norm(x.body) === norm(n.body) && x.contactId === (contact?.id ?? null) && x.propertyId === (prop?.id ?? null));
     if (dup) { report.skipped.push(`Note already exists: ${n.body.slice(0, 40)}…`); continue; }
     if (!dry) { const row = db.insert(s.notes).values({ body: n.body, contactId: contact?.id ?? null, propertyId: prop?.id ?? null }).returning().get(); afterCreate("notes", row as never); }
     bump("created", "notes");
