@@ -34,3 +34,4 @@ yarn-error.log*
 
 # Generated local architecture caches; reviewed snapshots live in docs/graphify
 /graphify-out/
+/scripts/macos/.build/

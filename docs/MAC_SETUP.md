@@ -1,19 +1,17 @@
-# Install RealtorPro on a MacBook
+# RealtorPro for MacBooks
 
-This is a private local release candidate. The release was tested on Windows,
-not on a physical Mac. The launcher, database and vault picker use cross-platform
-Node APIs, but **in-app Claude key storage is Windows-only**. On macOS use the
-environment-file option below; do not use **Save & test Claude** (even with a
-blank key, that button attempts Windows encryption).
+RealtorPro runs privately on your Mac and opens in Safari or Chrome. It supports
+in-app Claude connection through macOS Keychain, a native vault-folder chooser,
+and double-click setup/start launchers. It remains a local browser app, not a
+signed/notarized standalone .app or an App Store installer.
 
-## First installation
+## First-time installation
 
-1. Install **Node.js 24 LTS** using the macOS installer at
-   [nodejs.org](https://nodejs.org/en/download). Reopen Terminal after installation.
-2. Install Apple's Command Line Tools if needed: run `xcode-select --install`,
-   complete the installation dialog, then continue. These provide Git and the
-   compiler needed if a native database dependency must build from source.
-3. Run this in Terminal. It creates a new checkout, not a copy of anyone's CRM data:
+Install Node.js 24 LTS from [nodejs.org](https://nodejs.org/en/download).
+Run `xcode-select --install` in Terminal and finish Apple's Command Line Tools
+installation. This supplies Git, Swift for the Keychain helper, and a compiler
+if SQLite needs one. No full Xcode installation is required. If already installed,
+macOS will tell you. Reopen Terminal, then paste:
 
 ```bash
 mkdir -p "$HOME/Applications" &&
@@ -23,66 +21,97 @@ cd RealtorPro &&
 npm ci &&
 npm run setup &&
 npm run build &&
-npm start
+npm run launch
 ```
 
-If GitHub asks you to authenticate, use an account with repository access. Private
-repositories require an authorized credential, not your normal GitHub password.
-If the folder already exists, do not delete it; use the update instructions below.
+GitHub may require an account with repository access. A fresh install starts
+empty, without someone else's client records. Keep the project outside iCloud
+Drive, Dropbox and network shares; its live SQLite database belongs on local disk.
+Use the native Node installer for your Apple Silicon or Intel Mac. Never copy
+Windows node_modules or credentials onto the Mac.
 
-Open **http://127.0.0.1:3000** in Safari or Chrome. Keep Terminal running.
-Press Control-C to stop the app. Do not run it with `sudo`, expose it to the
-internet, or store its live database in iCloud Drive/Dropbox/a network share.
+## Everyday use — no commands to remember
 
-## Connect Claude on macOS
+In Finder, open your home folder → Applications → RealtorPro. Double-click
+**Start RealtorPro.command**. Make a Desktop alias if convenient; do not move the
+actual launcher out of its project folder. The browser opens once the database
+is ready. If the same app is already running, the launcher reopens it without
+starting a duplicate. An unrelated process using the port is never killed.
 
-Stop the app with Control-C. From the project folder:
+Keep the original Terminal window open. Control-C quits RealtorPro; closing
+the browser alone does not stop the server. This is not a hidden login service.
+If the browser does not open, use http://127.0.0.1:3000. Search with Command-K.
+Trackpad dragging and arrow buttons work under Arrange dashboard.
+
+The launcher finds the standard Node installer plus Apple Silicon and Intel
+Homebrew locations. If you use a version manager, launch from a Terminal where
+node is available or install Node in a standard location. If macOS blocks a
+downloaded launcher, review it and use Apple's per-file Open/Privacy & Security
+approval if available. Do not disable Gatekeeper. The Terminal fallback is:
 
 ```bash
-cp -n .env.example .env
-chmod 600 .env
-nano .env
+cd "$HOME/Applications/RealtorPro" && npm run launch
 ```
 
-Set the existing `ANTHROPIC_API_KEY=` line to your own Anthropic API key. Save
-with Control-O, Enter, then exit with Control-X. Run `npm start` again.
-Do not paste the key into a shell command, chat, or GitHub. The `.env` file is
-Git-ignored but contains plaintext; the permissions limit access to your macOS
-account. Enable FileVault and protect your account and backups. Anthropic API
-usage is billed separately from a Claude subscription.
+## Connect Claude from the app
 
-The environment key should appear configured in Integrations. This does not
-prove that it has generation credit. A live, user-controlled generation remains
-an acceptance test. Do not click **Save & test Claude** or **Disconnect Claude**
-in this version on macOS: the former needs Windows encryption; the latter saves
-an override that disables the environment key. To disconnect on a fresh Mac
-setup, remove the key from `.env` and restart instead.
+Open Integrations → Claude, paste your Anthropic API key and select
+**Save & test Claude**. Unlock your login keychain / approve the RealtorPro helper
+if macOS asks. Your Mac login password belongs only in the macOS dialog, never
+the app. No .env editing or restart is needed. API use is billed separately from
+a Claude subscription. Testing checks key/model access, not generation credits.
 
-Never copy a Windows `workspace/connections.json` or `.runtime-token` onto the
-Mac. Windows-encrypted credentials cannot be decrypted there.
+The key is stored in the local login Keychain under service `app.realtorpro.claude`.
+Only a random reference and model settings are saved in the workspace. Keys are
+never returned to the browser or included in database snapshots. Disconnect
+disables Claude and removes the referenced Keychain item. If deletion is denied,
+the app stays disconnected and shows cleanup instructions. Never remove other
+applications' Keychain items.
 
-## Connect Obsidian and personalize
+If a key is already in .env, leave the key box blank and select Save & test Claude
+to migrate it into Keychain. After success, you can remove the old .env entry;
+the app does not edit it. App settings override .env, including a saved disconnect.
+Paste the key again to reconnect after disconnecting.
 
-Open Integrations, set your name/brokerage/goal, then choose **Browse folders**
-under Obsidian. Select the vault root containing `.obsidian`, then **Use this
-vault** and **Save & connect vault**. The vault must already be present on the
-Mac. Allow Terminal access to its folder if macOS asks; use the narrowest needed
-permission. A cloud vault's Markdown files must be downloaded locally.
+After a helper update, macOS may ask for renewed access. If Keychain needs setup,
+quit the app and double-click **Set Up RealtorPro.command** or run `npm run setup`.
+Credentials copied from another operating system require reconnecting. Never copy
+the .runtime-token file between machines.
 
-Vault sharing with Claude is opt-in. Review proposed imports before approving.
-First launch has no sample contacts or properties. Gmail, Google Calendar sync,
-Follow Up Boss and the commercial studios are not implemented in this branch.
+## Connect Obsidian and populate the app
 
-## Launch next time
+Choose **Choose vault on this Mac…**, select the vault root containing .obsidian,
+then **Save & connect vault**. Selection alone does not index/import; Cancel
+leaves the existing choice unchanged. Browse folders and full-path entry remain
+available. Grant only the macOS folder permissions needed. Download iCloud notes
+locally before indexing. Set include/exclude folders and keep Claude sharing off
+unless you want selected note text sent to Anthropic.
 
-```bash
-cd "$HOME/Applications/RealtorPro" && npm start
-```
+Connecting Claude does not populate the app by itself:
 
-## Update later
+1. Paste client/meeting/property notes under Claude and choose **Extract records
+   with Claude**, or enable vault sharing and choose **Read vault with Claude**.
+2. Review the proposed records. Only information in the supplied text should be
+   used; check names, dates, money and links yourself.
+3. Choose **Import into the command center** to approve. Nothing is imported
+   before approval. Larger vaults should be processed one client folder at a time.
 
-Create and verify a snapshot in Integrations and keep a separate protected
-off-device backup. Stop every running app instance with Control-C first:
+Supported extraction includes contacts, buyer/seller profiles, properties,
+listings, transactions, tasks, opportunities and notes. Matching, pipeline,
+follow-ups and income summaries are calculated from saved data. Calendar
+appointments, call logs and detailed offers are not part of that extraction
+bundle; enter those in their pages or use a trusted agent's reviewed proposals.
+Claude does not automatically read Gmail, browse MLS or search for missing facts.
+
+Set your name/brokerage/goal in Integrations. Protect your account, enable FileVault
+and keep off-device backups. SQLite and snapshots are not encrypted by RealtorPro;
+Keychain protects only saved API keys. Selecting/indexing/importing does not edit
+original vault notes.
+
+## Update
+
+Make a verified snapshot and keep a protected off-device copy. Stop every app
+instance using this workspace with Control-C first:
 
 ```bash
 cd "$HOME/Applications/RealtorPro" &&
@@ -90,18 +119,25 @@ git pull --ff-only origin codex/production-readiness &&
 npm ci &&
 npm run setup &&
 npm run build &&
-npm start
+npm run launch
 ```
 
-Setup is additive, creates a pre-migration backup for an existing database,
-and never seeds or clears CRM records. Stop if any step fails. If Git reports
-conflicting local changes, preserve them and ask for help rather than resetting.
+Or after pulling, double-click Set Up RealtorPro.command and type YES. It checks
+the port, installs dependencies, prepares Keychain, migrates with a backup,
+builds and launches. It never seeds or clears data. A port check cannot detect
+an instance using another port/computer, so stop all instances first. Preserve
+local Git changes rather than resetting. If the folder exists, update; don't
+delete it to clone again.
 
-## Project map
+## Verification and remaining limits
 
-```bash
-open docs/graphify/graph.html
-```
+Tests include simulated Mac connection lifecycle cases on all platforms and a
+real Keychain test on Mac (one random synthetic item, deleted afterward). Desktop
+checks CI runs tests/builds on Mac and Windows; check its actual run result.
+Still verify on the real MacBook: Finder launch, folder selection/cancellation,
+privacy and Keychain dialogs, Safari, sleep/wake and an optional paid Claude
+generation. Automated CI cannot verify personal permissions or provider credit.
 
-The network graph and tree are local HTML files with CDN-hosted visualization
-libraries; internet access is needed for those libraries on first load.
+Gmail/Google Calendar sync, Follow Up Boss and the commercial studios are not
+implemented here. Never expose this local app to the LAN/internet. Graphify is
+in docs/graphify/graph.html; its CDN libraries need internet on first load.

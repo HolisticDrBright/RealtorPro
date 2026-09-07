@@ -5,7 +5,7 @@ import path from "node:path";
 import { z } from "zod";
 import { readJson } from "@/lib/api";
 import { AppError, errorResponse, ok } from "@/lib/errors";
-import { claudeKey, claudeModel, encryptApiKey, readConnections, saveConnections } from "@/lib/connections";
+import { claudeKey, claudeModel, disconnectClaude, saveClaudeConnection, readConnections, saveConnections } from "@/lib/connections";
 import { db } from "@/db";
 import { vaultNotes } from "@/db/schema";
 import { indexVault } from "@/services/obsidian";
@@ -20,16 +20,16 @@ export async function POST(req: NextRequest) {
     const cfg = readConnections();
     if (input.kind === "claude") {
       const model = input.model || claudeModel();
-      if (input.disconnect) { saveConnections({ ...cfg, claude: { enabled: false, model } }); return ok({ connected: false }); }
+      if (input.disconnect) { const warning = disconnectClaude(model); return ok({ connected: false, warning }); }
       const key = input.key || claudeKey();
       if (!key) throw new AppError("bad_request", "Enter your Anthropic API key.");
       try { await new Anthropic({ apiKey: key, timeout: 20000, maxRetries: 0 }).models.retrieve(model); }
       catch (err) {
         const status = err instanceof Anthropic.APIError ? err.status : undefined;
-        throw new AppError("unprocessable", status === 401 ? "Anthropic rejected this API key. Check the key and try again." : status === 404 ? "That model is not available to this API key. Check the model ID." : status === 429 ? "Anthropic is rate-limiting requests. Try again shortly." : "Could not verify Claude. Check your connection, key and model access. Existing settings were kept.");
+        throw new AppError("unprocessable", status === 401 ? "Anthropic rejected this API key. Use an API key from your Anthropic Console, not a Claude subscription or login token." : status === 403 ? "Anthropic denied access. Check this API key's organization permissions and model access in your Anthropic Console." : status === 404 ? "That model is not available to this API key. Check the model ID." : status === 429 ? "Anthropic is rate-limiting requests. Try again shortly." : "Could not verify Claude. Check your connection, key and model access. Existing settings were kept.");
       }
-      saveConnections({ ...cfg, claude: { enabled: true, model, encryptedKey: encryptApiKey(key), verifiedAt: new Date().toISOString() } });
-      return ok({ connected: true, model });
+      const warning = saveClaudeConnection(key, model);
+      return ok({ connected: true, model, warning });
     }
     if (input.disconnect) {
       saveConnections({ ...cfg, vault: { dir: null, include: [], exclude: [], allowClaude: false } });

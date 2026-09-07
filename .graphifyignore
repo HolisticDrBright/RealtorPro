@@ -1,0 +1,3 @@
+# Do not recursively graph the published graph itself.
+docs/graphify/
+scripts/macos/.build/

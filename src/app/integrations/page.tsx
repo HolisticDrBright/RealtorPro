@@ -3,12 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ClaudeSettings, VaultSettings, ProfileSettings } from "@/components/app/connection-settings";
+import type { ClaudeConnectionStatus } from "@/components/app/connection-settings";
 import { BackupSettings } from "@/components/app/backup-settings";
 import { api, bump, toast, useApi } from "@/lib/client";
 import { fmtDateTime } from "@/lib/dates";
 import { Badge, Card, Confirm, ErrorBox, Loading, PageHeader } from "@/components/ui/primitives";
 
-interface Status { claude: { configured: boolean; model: string; verifiedAt: string | null }; obsidian: { configured: boolean; exists: boolean; dir: string | null; dirName: string | null; writeFolder: string; noteCount: number; importable: number; linked: number; lastIndexedAt: string | null; allowClaude: boolean; include: string[]; exclude: string[] }; workspace: { contacts: number; properties: number; empty: boolean } }
+interface Status { claude: ClaudeConnectionStatus; obsidian: { configured: boolean; exists: boolean; dir: string | null; dirName: string | null; writeFolder: string; noteCount: number; importable: number; linked: number; lastIndexedAt: string | null; allowClaude: boolean; include: string[]; exclude: string[] }; workspace: { contacts: number; properties: number; empty: boolean } }
 interface Report { created: Record<string, number>; updated: Record<string, number>; skipped: string[] }
 type Bundle = Record<string, Record<string, unknown>[]>;
 
@@ -54,14 +55,14 @@ export default function IntegrationsPage() {
 
       <div className="grid gap-4 xl:grid-cols-2">
         <Card title={<h2 className="card-title flex items-center gap-2">Claude <Badge tone={c.configured ? "ok" : "neutral"}>{c.configured ? `${c.verifiedAt ? "Verified" : "Configured"} · ${c.model}` : "Not connected"}</Badge></h2>}>
-          <ClaudeSettings model={c.model} configured={c.configured} verifiedAt={c.verifiedAt} reload={reload} />
+          <ClaudeSettings {...c} reload={reload} />
           <div className="mt-3 text-[13px] text-ink-2">Paste anything — an email thread, meeting notes, a spreadsheet export, an Obsidian note, a lead sheet. Claude turns it into contacts, buyers, sellers, properties, listings, escrows, tasks and notes. You review the list, then import.</div>
           <textarea className="input mt-3 min-h-[160px]" placeholder={"e.g.\nMet the Andersons at the Coral Ridge open house. Mark & Lisa, (714) 555-7788, looking $2–3.5M in North Tustin, need a flat lot for a pool and space for in-laws, pre-approved with Chase. Follow up Friday.\nAlso: seller at 1 Pelican Hill Cir (Steven Brooks) may list in October around $8.5M, off-market first."} value={text} onChange={(e) => setText(e.target.value)} disabled={!c.configured} />
           <div className="flex gap-2 mt-2 flex-wrap"><button className="btn btn-primary" disabled={!c.configured || !text.trim() || busy === "claude"} onClick={() => run("claude", previewClaude)}>{busy === "claude" ? "Reading…" : "Extract records with Claude"}</button><span className="text-[12px] text-ink-3 self-center">Nothing is saved until you press Import below.</span></div>
         </Card>
 
         <Card title={<h2 className="card-title flex items-center gap-2">Obsidian vault <Badge tone={o.exists ? "ok" : "neutral"}>{o.exists ? o.dirName : o.configured ? "Folder not found" : "Not connected"}</Badge></h2>}>
-          <VaultSettings key={`${o.dir}-${o.allowClaude}`} dir={o.dir} include={o.include} exclude={o.exclude} allowClaude={o.allowClaude} reload={reload} />
+          <VaultSettings key={`${o.dir}-${o.allowClaude}`} dir={o.dir} include={o.include} exclude={o.exclude} allowClaude={o.allowClaude} isMac={c.platform === "darwin"} reload={reload} />
           {o.exists && <dl className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[13px]">{[["Notes indexed", o.noteCount], ["Linked to a contact", o.linked], ["Notes with type: frontmatter", o.importable], ["Last indexed", fmtDateTime(o.lastIndexedAt)], ["App writes only into", `${o.writeFolder}/`]].map(([k, v]) => <div key={String(k)} className="flex justify-between gap-3 border-b border-line-2 py-1.5"><dt className="text-ink-3">{k}</dt><dd className="font-medium">{String(v)}</dd></div>)}</dl>}
           <div className="flex gap-2 mt-3 flex-wrap"><button className="btn" disabled={!o.exists || busy === "index"} onClick={() => run("index", reindex)}>{busy === "index" ? "Indexing…" : "Re-index vault"}</button><button className="btn btn-primary" disabled={!o.exists || busy === "vault"} onClick={() => run("vault", previewVault)}>{busy === "vault" ? "Reading…" : "Import typed notes"}</button></div>
 

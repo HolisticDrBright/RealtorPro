@@ -1,20 +1,21 @@
 # RealtorPro Graphify map
 
-Generated 2026-09-07 from application commit `d1f9dbe`. Later documentation-only
-commits do not change the mapped application code.
+Refreshed 2026-09-07 with the Mac-first release changes: Keychain, native folder
+chooser, desktop launcher and connection regression tests.
 
 - Open `graph.html` in a browser for the interactive graph and community filters.
 - Open `GRAPH_TREE.html` for the folder hierarchy.
 - Read `GRAPH_REPORT.md` for generated analysis.
 - Use `graph.json` with Graphify query/path/explain commands.
 
-680 nodes, 2,041 connections, 31 named groups; 109 code/configuration files
+715 nodes, 2,128 connections, 35 named groups; 119 code/configuration files
 scanned locally with no external model API calls. The network view was browser
 checked, including search. Libraries load from public CDNs, so first viewing
 requires internet access.
 
 Private workspace data, environment credentials, dependencies and build output
-were excluded. Two documents were omitted by code-only mode; CSS is unsupported
+were excluded. Four documents were omitted by code-only mode; CSS and the
+two .command launchers are unsupported by this extractor
 and three Drizzle metadata JSON files produced no nodes. The TypeScript schema
 and SQL migrations are represented. Versioned test fixtures and opt-in demo seed
 code are included as source, not as active CRM records.
@@ -23,7 +24,7 @@ code are included as source, not as active CRM records.
 appear to be false matches on common names such as `text()` and `d()`: do not
 treat them as verified runtime call paths. The exported graph's integrity check
 found no dangling/missing endpoints, self-loops or duplicate endpoint pairs.
-245 isolated nodes include configuration entries and other disconnected symbols.
+251 isolated nodes include configuration entries and other disconnected symbols.
 This is a navigation aid, not a production certification or a complete runtime
 trace. Group names were authored from observed member files.
 

@@ -1,0 +1,33 @@
+name: Desktop checks
+on:
+  push:
+    branches: [codex/production-readiness]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run setup
+      - run: npm test
+      - run: npm run lint
+      - run: npm run build
+      - run: npm run typecheck
+      - name: Check Mac launcher syntax
+        if: runner.os == 'macOS'
+        run: bash -n 'Start RealtorPro.command' && bash -n 'Set Up RealtorPro.command'

@@ -7,6 +7,7 @@
     "dev": "tsx scripts/start.ts dev",
     "build": "next build",
     "start": "tsx scripts/start.ts start",
+    "launch": "tsx scripts/start.ts start --open",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -18,7 +19,7 @@
     "db:reset": "tsx src/db/reset.ts",
     "db:clear": "tsx src/db/clear.ts",
     "setup:empty": "npm run db:migrate",
-    "setup": "npm run db:migrate",
+    "setup": "node scripts/check-stopped.mjs && node scripts/macos/build-helper.mjs && npm run db:migrate",
     "mcp": "tsx scripts/mcp-server.ts",
     "mcp:config": "tsx scripts/mcp-server.ts --config"
   },

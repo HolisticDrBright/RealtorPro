@@ -1,6 +1,6 @@
 # RealtorPro — Private Command Center
 
-A local, single-user real-estate CRM for Windows. Contacts, buyer criteria,
+A local, single-user real-estate CRM for MacBooks and Windows. Contacts, buyer criteria,
 seller pipeline, listings, transactions, tasks, local appointments, notes,
 income tracking and buyer matching share a SQLite database.
 
@@ -9,11 +9,11 @@ multi-user SaaS**, and it does not include the commercial studios from the
 older AgentOS branch. A new workspace starts empty. Existing data is preserved
 by setup; no sample data is loaded automatically.
 
-Installing on a MacBook? See [Mac setup](docs/MAC_SETUP.md) for the macOS
-environment-key fallback and its limitations. See [Project graph](docs/graphify/README.md)
+Installing on a MacBook? See [Mac setup](docs/MAC_SETUP.md) for double-click
+launchers, Keychain and the native vault chooser. See [Project graph](docs/graphify/README.md)
 for the generated Graphify architecture map.
 
-## Start on Windows
+## Start locally
 
 Use Node.js 22.12+ or Node.js 24. From this project folder:
 
@@ -26,6 +26,9 @@ npm start
 
 Open [RealtorPro](http://127.0.0.1:3000) directly in your browser.
 Development only: `npm run dev` instead of build/start.
+On Mac, `npm run launch` opens the browser when ready; afterward you can
+double-click **Start RealtorPro.command**. Apple Command Line Tools are needed
+to compile the Keychain helper during setup.
 The app binds to 127.0.0.1. Do not expose it through a tunnel, proxy, LAN
 interface, or public host. Mobile layout is supported, but direct phone access
 over the network is intentionally not enabled in this private release.
@@ -47,7 +50,7 @@ Open **Integrations**:
    **Save & test Claude**. No restart needed. This verifies credentials and
    model access, not generation credits. API usage is billed by Anthropic
    separately from a Claude subscription.
-3. **Obsidian:** select **Browse folders**, navigate to your vault root
+3. **Obsidian:** on Mac, use **Choose vault on this Mac…**, or select **Browse folders**, navigate to your vault root
    (the folder containing `.obsidian`), choose **Use this vault**, and
    **Save & connect vault**. Or paste the full folder path.
 4. Optionally restrict included/excluded folders. Vault text stays local
@@ -61,11 +64,12 @@ The selected model can be changed. The default `claude-sonnet-4-6` is a
 documented, supported model ID; check [Anthropic's model documentation](https://platform.claude.com/docs/en/models/sonnet-4-6/overview)
 for its capabilities. Availability is checked against your account.
 
-Saved API keys use Windows DPAPI encryption, bound to your Windows account.
+Saved API keys use macOS login Keychain or Windows DPAPI, bound to your OS account.
 Keys are not returned to the browser, stored in browser storage, or included
-in database snapshots. The settings file contains encrypted key material and
-vault paths; protect your workspace. On other operating systems use the
-environment key fallback; in-app secure key storage is currently Windows-only.
+in database snapshots. The settings file contains a Keychain reference on Mac,
+encrypted key material on Windows, and vault paths; protect your workspace.
+Linux uses an environment key. Moving between operating systems requires
+reconnecting. A locked Keychain produces an error, not a silent fallback.
 
 An app-saved connection overrides its legacy `.env` setting. Disconnect
 overrides an environment key/path too. Disconnecting a vault removes its
@@ -178,6 +182,6 @@ cross-site/unauthenticated requests and non-localhost hosts. MCP uses a local
 bearer token restricted to reads and proposal creation.
 
 This protects against ordinary cross-site requests, not malicious software
-running as your Windows account. SQLite, snapshots and local session files
-inherit your workspace's filesystem access. Use a protected Windows account,
+running as your OS account. SQLite, snapshots and local session files
+inherit your workspace's filesystem access. Use a protected Mac/Windows account,
 full-disk encryption and trusted software. Do not host this release publicly.
