@@ -9,6 +9,10 @@ multi-user SaaS**, and it does not include the commercial studios from the
 older AgentOS branch. A new workspace starts empty. Existing data is preserved
 by setup; no sample data is loaded automatically.
 
+Installing on a MacBook? See [Mac setup](docs/MAC_SETUP.md) for the macOS
+environment-key fallback and its limitations. See [Project graph](docs/graphify/README.md)
+for the generated Graphify architecture map.
+
 ## Start on Windows
 
 Use Node.js 22.12+ or Node.js 24. From this project folder:
