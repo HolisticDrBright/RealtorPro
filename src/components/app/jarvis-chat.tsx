@@ -5,7 +5,10 @@ import { useEffect, useRef, useState } from "react";
 import { api, label, toast, useApi } from "@/lib/client";
 import type { JarvisTurn } from "@/lib/jarvis";
 import { Badge, Card, Empty, ErrorBox, Loading, PageHeader } from "@/components/ui/primitives";
-import { speakJarvis, useJarvisVoice } from "./jarvis-voice";
+import { useJarvisVoice } from "./jarvis-voice";
+import { useJarvisSpeech } from "./jarvis-speech";
+import { JarvisHologram } from "./jarvis-hologram";
+import { JarvisVoiceSettings } from "./jarvis-voice-settings";
 
 export function JarvisChat({ id }: { id?: string }) {
   const router = useRouter();
@@ -20,6 +23,9 @@ export function JarvisChat({ id }: { id?: string }) {
   const current = useApi<{ item: JarvisTurn }>(id ? `/api/jarvis/${id}` : null, { refreshMs: 4000 });
   const turn = current.data?.item;
   const waiting = busy || turn?.status === "pending";
+  const speech = useJarvisSpeech();
+  const { speak, stop: stopSpeech } = speech;
+  const voiceCount = speech.voices.length;
   const voice = useJarvisVoice((text) => {
     const combined = [question.trim(), text].filter(Boolean).join(" ").slice(0, 4000);
     setQuestion(combined);
@@ -27,16 +33,18 @@ export function JarvisChat({ id }: { id?: string }) {
   });
   useEffect(() => { try { setConsent(sessionStorage.getItem("jarvis-crm-consent-v2") === "yes"); setAllowExternal(sessionStorage.getItem("jarvis-external") !== "no"); setAllowScheduling(sessionStorage.getItem("jarvis-changes") !== "no"); setVoiceConsent(sessionStorage.getItem("jarvis-voice") === "yes"); setAutoSend(sessionStorage.getItem("jarvis-auto-send") === "yes"); setReadAloud(sessionStorage.getItem("jarvis-read-aloud") === "yes"); } catch { /* session-only preferences */ } }, []);
   function voicePreference(key: string, value: boolean) { try { sessionStorage.setItem(key, value ? "yes" : "no"); } catch { /* still works for this view */ } }
+  useEffect(() => { stopSpeech(); }, [id, stopSpeech]);
   useEffect(() => {
-    if (readAloud && turn?.status === "complete" && turn.answer && spoken.current !== turn.id) {
+    if (readAloud && voiceCount && turn?.status === "complete" && turn.answer && spoken.current !== turn.id) {
       spoken.current = turn.id;
-      speakJarvis(`${turn.drafts.length ? "Proposed changes need your approval. " : ""}${turn.answer}`);
+      speak(`${turn.drafts.length ? "Proposed changes need your approval. " : ""}${turn.answer}`);
     }
-  }, [readAloud, turn]);
+  }, [readAloud, turn, speak, voiceCount]);
+  function toggleMicrophone() { speech.stop(); if (voice.listening) voice.stop(); else voice.start(); }
   function consentChanged(value: boolean) { setConsent(value); try { sessionStorage.setItem("jarvis-crm-consent-v2", value ? "yes" : "no"); } catch { /* still works without persistence */ } }
   async function send(text: string) {
     if (!consent || !text.trim() || sending.current || waiting) return;
-    sending.current = true; setBusy(true); setError(null); voice.stop();
+    sending.current = true; setBusy(true); setError(null); voice.stop(); speech.stop();
     const requestId = crypto.randomUUID(); setPendingId(requestId);
     try {
       const result = await api.post<{ item: JarvisTurn }>("/api/jarvis", { id: requestId, question: text.trim(), parentId: turn?.status === "complete" ? turn.id : null, consent: true, allowScheduling, allowChanges: allowScheduling, allowExternal });
@@ -57,6 +65,11 @@ export function JarvisChat({ id }: { id?: string }) {
     <PageHeader title="Ask Jarvis" sub="Your saved records, a spoken question, and a clear next step."><Link href="/jarvis" className="btn">New conversation</Link><Link href="/integrations" className="btn">Claude connection</Link></PageHeader>
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_260px]">
       <div className="space-y-4 min-w-0">
+        <JarvisHologram state={voice.listening ? "listening" : waiting ? "thinking" : speech.speaking ? "speaking" : "idle"} pulse={speech.pulse}>
+          <button type="button" disabled={!voice.supported || (!voice.listening && (!voiceConsent || !!waiting))} onClick={toggleMicrophone}>{voice.listening ? "Stop listening" : "Talk to Jarvis"}</button>
+          {speech.speaking && <button type="button" onClick={speech.stop}>Mute Jarvis</button>}
+          {!voiceConsent && <p className="text-xs">Enable microphone permission below to talk, or type your question.</p>}
+        </JarvisHologram>
         <Card title="Talk to your command center">
           <p className="text-[13px] text-ink-3">Jarvis can read and propose changes across your app records, read permitted Obsidian notes directly, and read your selected Google Calendar. Vault access follows the Claude-sharing and folder controls in Integrations. Questions, answers and proposals are saved locally. No access to credentials, hidden/excluded files, Gmail or files outside your vault.</p>
           <label className="flex items-start gap-2 text-[13px] mt-3"><input type="checkbox" className="mt-1" checked={consent} onChange={(e) => consentChanged(e.target.checked)} />Allow Jarvis to send my questions, relevant app records, permitted vault text, selected Google Calendar details and recent conversation context to Claude for this browser session.</label>
@@ -67,17 +80,18 @@ export function JarvisChat({ id }: { id?: string }) {
             <label htmlFor="jarvis-question" className="label">{turn ? "Ask a follow-up" : "Your question"}</label>
             <textarea id="jarvis-question" className="input min-h-28" value={question} maxLength={4000} disabled={!!waiting || voice.listening} onChange={(e) => setQuestion(e.target.value)} placeholder="Which investors want multifamily? What does Sarah want in her next home? Draft a call reminder for…" />
             <div className="flex flex-wrap gap-2 mt-3">
-              <button type="button" className={`btn ${voice.listening ? "text-crit" : ""}`} disabled={!voice.supported || (!voice.listening && (!voiceConsent || !!waiting))} onClick={() => voice.listening ? voice.stop() : voice.start()}>{voice.listening ? "Stop microphone" : "Microphone"}</button>
+              <button type="button" className={`btn ${voice.listening ? "text-crit" : ""}`} disabled={!voice.supported || (!voice.listening && (!voiceConsent || !!waiting))} onClick={toggleMicrophone}>{voice.listening ? "Stop microphone" : "Microphone"}</button>
               <button className="btn btn-primary" type="submit" disabled={!consent || !question.trim() || !!waiting || voice.listening}>{waiting ? "Jarvis is working…" : "Ask Jarvis"}</button>
             </div>
           </form>
           <details className="text-[12px] text-ink-3 mt-4" open={!voiceConsent}>
             <summary className="cursor-pointer font-medium">Voice & privacy</summary>
-            <p className="mt-2">Browser speech recognition may send audio to its provider and may need internet access. Read-aloud uses a local voice when available, otherwise the browser’s voice service. RealtorPro does not store audio. Voice support varies by browser; typing or Mac dictation remains available.</p>
+            <p className="mt-2">Browser speech recognition may send audio to its provider and may need internet access. Read-aloud uses only device voices by default; online voices require a separate opt-in below. RealtorPro does not store audio or use your camera. Voice support varies by browser; typing or Mac dictation remains available.</p>
             <label className="flex items-start gap-2 mt-2"><input type="checkbox" checked={voiceConsent} onChange={(e) => { setVoiceConsent(e.target.checked); voicePreference("jarvis-voice", e.target.checked); if (!e.target.checked) voice.stop(); }} />Allow browser speech recognition when I press Microphone.</label>
             <label className="flex items-start gap-2 mt-2"><input type="checkbox" checked={autoSend} onChange={(e) => { setAutoSend(e.target.checked); voicePreference("jarvis-auto-send", e.target.checked); }} />Send my recognized question automatically after I speak.</label>
-            <label className="flex items-start gap-2 mt-2"><input type="checkbox" checked={readAloud} onChange={(e) => { setReadAloud(e.target.checked); voicePreference("jarvis-read-aloud", e.target.checked); if (!e.target.checked) window.speechSynthesis?.cancel(); }} />Read Jarvis answers aloud using the browser/device voice.</label>
+            <label className="flex items-start gap-2 mt-2"><input type="checkbox" checked={readAloud} onChange={(e) => { setReadAloud(e.target.checked); voicePreference("jarvis-read-aloud", e.target.checked); if (!e.target.checked) speech.stop(); }} />Read Jarvis answers aloud using the browser/device voice.</label>
           </details>
+          <JarvisVoiceSettings speech={speech} beforePreview={voice.stop} />
           {!voice.supported && <p className="text-[12px] text-ink-3 mt-2">Microphone recognition is unavailable here. Type or dictate into the text box instead.</p>}
           {voice.listening && <p role="status" className="text-[13px] mt-2">Listening… stops after one utterance or 60 seconds. Stop microphone cancels recognition.</p>}
           {voice.error && <ErrorBox message={voice.error} />}
@@ -91,7 +105,7 @@ export function JarvisChat({ id }: { id?: string }) {
           <p className="text-[13px] font-medium whitespace-pre-wrap break-words mb-4">You: {turn.question}</p>
           {turn.status === "pending" && <p role="status">Still working. This question is saved. If the app restarted or this lasts more than two minutes, start a new conversation; Jarvis will not automatically bill you for a retry.</p>}
           {turn.error && <ErrorBox message={turn.error} />}
-          {turn.answer && <><p className="whitespace-pre-wrap break-words text-[14px] leading-relaxed">{turn.answer}</p><div className="flex flex-wrap gap-2 mt-3"><button className="btn btn-sm" onClick={() => { if (!speakJarvis(turn.answer!)) setError("Read-aloud is unavailable in this browser."); }}>Read answer aloud</button><button className="btn btn-sm" onClick={() => window.speechSynthesis?.cancel()}>Stop speaking</button></div></>}
+          {turn.answer && <><p className="whitespace-pre-wrap break-words text-[14px] leading-relaxed">{turn.answer}</p><div className="flex flex-wrap gap-2 mt-3"><button className="btn btn-sm" disabled={!speech.supported} onClick={() => { voice.stop(); speech.speak(turn.answer!); }}>Read answer aloud</button><button className="btn btn-sm" onClick={speech.stop}>Stop speaking</button></div></>}
           {turn.drafts.length > 0 && <div className="mt-4 border-t border-line pt-4">
             <h2 className="font-semibold">{turn.reviewStatus === "applied" ? "Approved changes applied" : turn.reviewStatus === "pending" ? "Review before saving — drafts only" : "Drafts not applied"}</h2>
             <p className="text-[12px] text-ink-3 mt-1">Verify the destination, people, fields, dates and time zone. Local app zone: {turn.timeZone}; Google times include explicit offsets. No invitations or calls are sent. Deleting a contact or property may also remove linked records. Vault edits keep a recovery copy.</p>

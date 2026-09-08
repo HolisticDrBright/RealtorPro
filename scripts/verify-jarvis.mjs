@@ -18,7 +18,25 @@ await context.addInitScript(() => {
     stop() { this.onend?.(); }
     abort() { this.onend?.(); }
   };
-  Object.defineProperty(window, "speechSynthesis", { configurable: true, value: { cancel() {}, getVoices: () => [], speak() { window.__jarvisReadAloud = true; } } });
+  const voices = [
+    { voiceURI: "basic", name: "Basic", lang: "en-US", default: true, localService: true },
+    { voiceURI: "enhanced", name: "Samantha Enhanced", lang: "en-US", default: false, localService: true },
+    { voiceURI: "online", name: "Online Premium", lang: "en-US", default: false, localService: false },
+  ];
+  window.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; } };
+  const synth = new EventTarget(); let endTimer;
+  Object.assign(synth, {
+    speaking: false, pending: false,
+    cancel() { clearTimeout(endTimer); this.speaking = false; },
+    getVoices: () => window.__noVoices ? [] : voices,
+    speak(u) {
+      window.__jarvisReadAloud = true; window.__lastUtterance = { text: u.text, voice: u.voice.voiceURI, rate: u.rate };
+      this.speaking = true;
+      queueMicrotask(() => { u.onstart?.(); u.onboundary?.(); });
+      endTimer = setTimeout(() => { this.speaking = false; u.onend?.(); }, 2000);
+    },
+  });
+  Object.defineProperty(window, "speechSynthesis", { configurable: true, value: synth });
 });
 const page = await context.newPage(); page.setDefaultTimeout(20000);
 const errors = [], created = [], turns = [], reviewIds = [];
@@ -35,6 +53,42 @@ try {
   sqlite = new Database(path.resolve("../RealtorPro-browser-workspace/command-center.db"));
   assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM jarvis_turns").get().count, 0, "Use an empty Jarvis fixture");
   assert.equal(await page.getByRole("button", { name: "Microphone", exact: true }).isDisabled(), true);
+  const hologram = page.getByRole("region", { name: "Jarvis holographic assistant" });
+  assert.equal(await hologram.getAttribute("data-state"), "idle");
+  await page.getByText("Selected: Samantha Enhanced", { exact: true }).waitFor();
+  assert.equal(await page.locator("#jarvis-output-voice option[value=online]").count(), 0, "Online voices are opt-in");
+  await page.getByRole("button", { name: "Preview voice", exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('[aria-label="Jarvis holographic assistant"]').dataset.state === "speaking");
+  assert.equal((await page.evaluate(() => window.__lastUtterance)).voice, "enhanced");
+  await page.getByRole("button", { name: "Stop preview / audio", exact: true }).click();
+  assert.equal(await hologram.getAttribute("data-state"), "idle");
+  await page.getByLabel("Speaking voice", { exact: true }).selectOption("basic");
+  await page.getByLabel("Speaking speed", { exact: false }).fill("0.88");
+  await page.reload();
+  await page.waitForFunction(() => document.getElementById("jarvis-output-voice").value === "basic");
+  assert.equal(await page.getByLabel("Speaking speed", { exact: false }).inputValue(), "0.88");
+  await page.getByRole("button", { name: "Preview voice", exact: true }).click();
+  assert.deepEqual(await page.evaluate(() => ({ voice: window.__lastUtterance.voice, rate: window.__lastUtterance.rate })), { voice: "basic", rate: 0.88 });
+  await page.getByRole("button", { name: "Stop preview / audio", exact: true }).click();
+  await page.evaluate(() => { window.__noVoices = true; window.speechSynthesis.dispatchEvent(new Event("voiceschanged")); });
+  await page.getByRole("button", { name: "Preview voice", exact: true }).click();
+  await page.getByText("Your selected voice is unavailable.", { exact: false }).waitFor();
+  await page.evaluate(() => { window.__noVoices = false; window.speechSynthesis.dispatchEvent(new Event("voiceschanged")); });
+  await page.getByLabel("Speaking voice", { exact: true }).selectOption("");
+  await page.getByRole("button", { name: "Pause motion", exact: true }).click();
+  await hologram.scrollIntoViewIfNeeded();
+  await page.waitForFunction(() => localStorage.getItem("jarvis-hologram-motion") === "off");
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  const paused = await hologram.locator("canvas").evaluate((c) => c.toDataURL());
+  await page.waitForTimeout(200);
+  assert.equal(await hologram.locator("canvas").evaluate((c) => c.toDataURL()), paused, "Paused face does not animate");
+  await page.getByRole("button", { name: "Resume motion", exact: true }).click();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  const reduced = await hologram.locator("canvas").evaluate((c) => c.toDataURL());
+  await page.waitForTimeout(200);
+  assert.equal(await hologram.locator("canvas").evaluate((c) => c.toDataURL()), reduced, "System reduced-motion disables animation");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.getByLabel("Your question", { exact: true }).fill("Which investors want a duplex?");
   assert.equal(await page.getByRole("button", { name: "Ask Jarvis", exact: true }).isDisabled(), true);
   await page.getByLabel("Allow Jarvis to send my questions", { exact: false }).check();
@@ -66,6 +120,7 @@ try {
   });
   await page.getByRole("button", { name: "Microphone", exact: true }).click();
   await page.getByRole("button", { name: "Stop microphone", exact: true }).waitFor();
+  assert.equal(await hologram.getAttribute("data-state"), "listening");
   await page.evaluate(() => window.__jarvisRecognition.onresult({ results: [{ isFinal: true, 0: { transcript: "Draft a task for JarvisBrowser Test due June fourth 2030." } }] }));
   await page.getByText("Review before saving — drafts only", { exact: true }).waitFor();
   assert.equal(sentQuestion, "Draft a task for JarvisBrowser Test due June fourth 2030.");
@@ -93,7 +148,7 @@ try {
   assert.ok(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), "No mobile horizontal overflow");
   await phone.screenshot({ path: path.resolve("../../outputs/realtorpro-jarvis-mobile.png"), fullPage: true, animations: "disabled" });
   await phoneContext.close(); assert.deepEqual(errors, []);
-  console.log("PASS real missing-key error, consent gate, simulated voice transcript/auto-send/read-aloud, real saved history/reload, approval-only task creation, record link, mobile fallback/layout; no browser exceptions. No live audio or paid Claude call tested.");
+  console.log("PASS hologram render/listen/speak/stop/pause, preferred local voice, online opt-in filter, saved voice/speed, preview and unavailable-voice error; real missing-key error, consent gate, simulated voice transcript/auto-send/read-aloud, real saved history/reload, approval-only task creation, record link, mobile fallback/layout; no browser exceptions. No live audio or paid Claude call tested.");
 } finally {
   for (const id of turns) sqlite?.prepare("DELETE FROM jarvis_turns WHERE id = ?").run(id);
   for (const id of reviewIds) sqlite?.prepare("DELETE FROM reviews WHERE id = ?").run(id);

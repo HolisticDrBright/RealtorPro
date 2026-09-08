@@ -41,14 +41,3 @@ export function useJarvisVoice(onTranscript: (text: string) => void) {
   }
   return { supported, listening, error, start, stop };
 }
-
-export function speakJarvis(text: string) {
-  if (!("speechSynthesis" in window)) return false;
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  const localVoice = window.speechSynthesis.getVoices().find((voice) => voice.localService && voice.lang.startsWith("en"));
-  if (localVoice) utterance.voice = localVoice;
-  utterance.lang = "en-US"; utterance.rate = 1;
-  window.speechSynthesis.speak(utterance);
-  return true;
-}

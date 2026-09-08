@@ -85,9 +85,35 @@ Start fresh clears records/history, not backups, vault files or Google events.
 Individual-conversation deletion is not implemented.
 
 Browser speech recognition may send audio to its provider and may not work offline.
-Read-aloud prefers a local English voice but can use the default browser service.
+Read-aloud uses only voices reported as local by the browser by default. Online
+browser voices require an explicit opt-in because the provider may receive the
+spoken answer, including private client details. It never silently falls back
+to a different voice when the user's explicit selection is unavailable.
 RealtorPro stores transcripts, not audio. Use typing/macOS dictation if unsupported.
 See [speech recognition](https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition).
+
+### Hologram and speaking voice
+
+Jarvis has an original cyan/gold particle head and shoulders. Listening, thinking
+and speaking states follow the real chat/speech lifecycle. Mouth movement reacts
+to speech activity and word boundaries where available; it is expressive animation,
+not phoneme-accurate lip-sync. No camera, face tracking, downloaded avatar or video
+generation service is used. Motion pauses offscreen/in background, respects reduced
+motion, and has a saved Pause motion control. The written answer remains available.
+
+Under **Make Jarvis sound like Jarvis**, select a voice, preview it and adjust speed.
+Automatic prefers English voices with Premium/Enhanced/Natural/Neural in their name;
+this is a selection heuristic, not a guarantee of voice quality. Choices and speed
+are saved in this browser. Long answers are spoken in short sentence-aware chunks.
+Stopping audio, starting the microphone, leaving the chat or hiding the tab cancels
+speech. No extra API key or voice API charges are required for local voices.
+
+On macOS, download a voice in **System Settings → Accessibility → Read & Speak →
+System voice** (Spoken Content on older releases), then click **Refresh voices**.
+Only voices exposed by the browser can be selected; available voices differ by
+Mac/browser and not all Siri voices are exposed. See [Apple's voice setup guide](https://support.apple.com/guide/mac-help/change-the-voice-your-mac-uses-to-speak-text-mchlp2290/mac).
+If automatic audio is blocked, click Preview voice or Read answer aloud.
+ElevenLabs/premium cloud speech is not connected in this release.
 
 ## Limits and verification
 
