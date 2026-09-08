@@ -17,6 +17,7 @@
     "test:off-market-browser": "node scripts/verify-off-market.mjs",
     "test:jarvis-browser": "node scripts/verify-jarvis.mjs",
     "test:google-browser": "node scripts/verify-google-connect.mjs",
+    "test:match-browser": "node scripts/verify-match-packet.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
@@ -28,22 +29,32 @@
     "mcp:config": "tsx scripts/mcp-server.ts --config"
   },
   "overrides": {
-    "next": { "postcss": "$postcss", "sharp": "0.35.4" },
-    "@esbuild-kit/core-utils": { "esbuild": "^0.25.12" }
+    "next": {
+      "postcss": "$postcss",
+      "sharp": "0.35.4"
+    },
+    "@esbuild-kit/core-utils": {
+      "esbuild": "^0.25.12"
+    }
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.123.0",
+    "@fontsource/noto-sans": "^5.3.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "better-sqlite3": "^12.4.1",
     "drizzle-orm": "^0.45.2",
+    "fontkit": "^2.0.4",
     "next": "^15.5.25",
+    "pdfkit": "^0.20.2",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/better-sqlite3": "7.6.12",
+    "@types/fontkit": "^2.0.9",
     "@types/node": "^22.12.0",
+    "@types/pdfkit": "^0.17.6",
     "@types/react": "19.0.7",
     "@types/react-dom": "19.0.3",
     "autoprefixer": "10.4.20",

@@ -25,6 +25,25 @@ export const settings = sqliteTable("settings", {
   updatedAt: updatedAt(),
 });
 
+export const matchDrafts = sqliteTable("match_drafts", {
+  id: id(), buyerId: text("buyer_id").notNull(), candidateId: text("candidate_id").notNull(),
+  kind: text("kind").notNull(), context: text("context").notNull(), options: text("options").notNull(),
+  status: text("status").notNull().default("pending"), error: text("error"),
+  model: text("model").notNull(), rawResult: text("raw_result"),
+  subject: text("subject").notNull().default(""), email: text("email").notNull().default(""),
+  sms: text("sms").notNull().default(""), recipient: text("recipient").notNull().default(""),
+  usage: json<{ inputTokens: number; outputTokens: number }>("usage"), estimatedCostUsd: real("estimated_cost_usd"),
+  inPacket: integer("in_packet", { mode: "boolean" }).notNull().default(true),
+  revision: integer("revision").notNull().default(0),
+  createdAt: createdAt(), updatedAt: updatedAt(),
+});
+
+export const matchPackets = sqliteTable("match_packets", {
+  id: id(), title: text("title").notNull(), draftIds: json<string[]>("draft_ids").notNull(),
+  filename: text("filename").notNull(), vaultPath: text("vault_path"), vaultId: text("vault_id"),
+  createdAt: createdAt(),
+});
+
 export const reviews = sqliteTable("reviews", {
   id: id(), source: text("source").notNull(), payload: text("payload").notNull(),
   preview: text("preview").notNull(), fingerprint: text("fingerprint").notNull(),

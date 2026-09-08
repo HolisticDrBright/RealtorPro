@@ -4,7 +4,7 @@ const nextConfig = {
   outputFileTracingRoot: process.cwd(),
   // better-sqlite3 is a native module used only in server code (API routes,
   // server actions, scripts). Keep it external so Next does not try to bundle it.
-  serverExternalPackages: ["better-sqlite3"],
+  serverExternalPackages: ["better-sqlite3", "pdfkit"],
 };
 
 export default nextConfig;
