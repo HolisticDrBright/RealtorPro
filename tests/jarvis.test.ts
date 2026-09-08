@@ -12,7 +12,7 @@ vi.mock("@anthropic-ai/sdk", async (original) => {
   const actual = await original<typeof import("@anthropic-ai/sdk")>();
   return { ...actual, default: class { static APIError = actual.APIError; messages = { create: provider.create }; } };
 });
-vi.mock("@/lib/connections", () => ({ claudeKey: provider.key, claudeModel: () => "test-model" }));
+vi.mock("@/lib/connections", () => ({ claudeKey: provider.key, claudeModel: () => "test-model", readConnections: () => ({}) }));
 const fixture = fs.mkdtempSync(path.join(os.tmpdir(), "realtorpro-jarvis-"));
 let db: typeof import("@/db").db;
 let s: typeof import("@/db/schema");
@@ -45,10 +45,11 @@ describe("Jarvis grounded lookup and approval-only scheduling", () => {
     expect(provider.create).not.toHaveBeenCalled();
     expect(jarvis.listJarvisTurns()).toEqual([]);
   });
-  it("allows CRM lookups but not settings, vault files, arbitrary tables or unknown fields", () => {
+  it("allows CRM/profile lookups but not credentials, raw vault tables or arbitrary fields", () => {
     const c = contact();
     expect(jarvis.findJarvisRecords({ entity: "contacts", query: "Alex JarvisTest" }).sources[0].href).toBe(`/contacts/${c.id}`);
-    for (const entity of ["settings", "vaultNotes", "jarvisTurns", "__proto__", "contacts; DROP TABLE contacts"]) expect(() => jarvis.findJarvisRecords({ entity })).toThrow();
+    for (const entity of ["connections", "vaultNotes", "jarvisTurns", "__proto__", "contacts; DROP TABLE contacts"]) expect(() => jarvis.findJarvisRecords({ entity })).toThrow();
+    expect(() => jarvis.findJarvisRecords({ entity: "settings" })).not.toThrow();
     expect(() => jarvis.findJarvisRecords({ entity: "contacts", path: "/private" })).toThrow();
     expect(jarvis.findJarvisRecords({ entity: "contacts", query: "nobody" }).records).toEqual([]);
   });
@@ -143,5 +144,51 @@ describe("Jarvis grounded lookup and approval-only scheduling", () => {
     expect(JSON.stringify(provider.create.mock.calls[2][0].messages)).toContain("Draft ready; not booked.");
     await reviews.decideReview(first.reviewId!, true);
     expect(db.select().from(s.appointments).all()).toHaveLength(1);
+  });
+  it("fills a buyer field and creates an alert only after approval", async () => {
+    const c = contact(); const buyer = db.insert(s.buyers).values({ contactId: c.id }).returning().get();
+    provider.create.mockResolvedValueOnce(reply([
+      { type: "tool_use", id: "fields1", name: "describe_fields", input: { entity: "buyers" } },
+      { type: "tool_use", id: "fields2", name: "describe_fields", input: { entity: "notifications" } },
+      { type: "tool_use", id: "lookup", name: "find_records", input: { entity: "buyers", id: buyer.id } },
+    ], "tool_use"))
+      .mockResolvedValueOnce(toolReply("prepare_changes", { items: [{ action: "update", entity: "buyers", id: buyer.id, fields: { minBeds: 3, mustHaves: ["Garage"] } }, { action: "create", entity: "notifications", fields: { title: "Confirm garage requirement", href: "/buyers" } }] }))
+      .mockResolvedValueOnce(textReply("Buyer changes and an in-app alert are ready for approval."));
+    const turn = await jarvis.askJarvis(request({ allowChanges: true }));
+    expect(turn.status).toBe("complete"); expect(turn.drafts).toHaveLength(2);
+    expect(db.select().from(s.buyers).get()?.minBeds).toBeNull();
+    await reviews.decideReview(turn.reviewId!, true);
+    expect(db.select().from(s.buyers).get()).toMatchObject({ minBeds: 3, mustHaves: ["Garage"] });
+    expect(db.select().from(s.notifications).get()?.title).toBe("Confirm garage requirement");
+  });
+  it("creates linked records using typed batch references and rolls back a bad batch", async () => {
+    const p = reviews.propose({ action: "batch", items: [{ action: "create", entity: "contacts", ref: "client", fields: { firstName: "New Buyer" } }, { action: "create", entity: "buyers", fields: { contactId: "@ref:client", minBeds: 4 } }, { action: "create", entity: "notes", fields: { contactId: "@ref:client", body: "Verified user-provided criteria" } }] });
+    expect(db.select().from(s.contacts).all()).toHaveLength(0); await reviews.decideReview(p.reviewId, true);
+    expect(db.select().from(s.buyers).get()?.contactId).toBe(db.select().from(s.contacts).get()?.id);
+    expect(db.select().from(s.notes).get()?.contactId).toBe(db.select().from(s.contacts).get()?.id);
+    expect(() => reviews.propose({ action: "batch", items: [{ action: "create", entity: "contacts", ref: "wrong", fields: { firstName: "Rollback" } }, { action: "create", entity: "listings", fields: { propertyId: "@ref:wrong", listPrice: 100 } }] })).toThrow(/matching/);
+    expect(db.select().from(s.contacts).all()).toHaveLength(1);
+  });
+  it("can update profile fields but cannot modify keys, unknown fields or create a second profile", async () => {
+    const profile = db.select().from(s.settings).get() || db.insert(s.settings).values({}).returning().get();
+    const p = reviews.propose({ action: "batch", items: [{ action: "update", entity: "settings", id: profile.id, fields: { brokerage: "Test Brokerage" } }] });
+    await reviews.decideReview(p.reviewId, true);
+    expect(db.select().from(s.settings).get()?.brokerage).toBe("Test Brokerage");
+    expect(() => reviews.propose({ action: "update", entity: "settings", id: profile.id, fields: { apiKey: "fake" } })).toThrow();
+    expect(() => reviews.propose({ action: "create", entity: "settings", fields: {} })).toThrow();
+    expect(() => reviews.propose({ action: "delete", entity: "settings", id: profile.id, fields: {} })).toThrow();
+  });
+  it("reads an unimported vault note and requires complete text before proposing a rewrite", async () => {
+    fs.mkdirSync(path.join(fixture, "vault"), { recursive: true }); fs.writeFileSync(path.join(fixture, "vault", "Client.md"), "Alex wants a duplex. Preserve this line.");
+    vi.stubEnv("OBSIDIAN_ALLOW_CLAUDE", "true");
+    provider.create.mockResolvedValueOnce(toolReply("read_vault_note", { path: "Client.md" }))
+      .mockResolvedValueOnce(toolReply("prepare_vault_write", { path: "Client.md", content: "Alex wants a duplex. Preserve this line.\nFollow up next week." }))
+      .mockResolvedValueOnce(textReply("I read your note and prepared an edit."));
+    const turn = await jarvis.askJarvis(request({ allowChanges: true, allowExternal: true }));
+    expect(turn.status).toBe("complete"); expect(turn.sources[0].entity).toBe("vault");
+    expect(fs.readFileSync(path.join(fixture, "vault", "Client.md"), "utf8")).not.toContain("Follow up");
+    await reviews.decideReview(turn.reviewId!, true);
+    expect(fs.readFileSync(path.join(fixture, "vault", "Client.md"), "utf8")).toContain("Follow up");
+    expect(fs.existsSync(path.join(fixture, "workspace", "backups", "vault", turn.reviewId + ".json"))).toBe(true);
   });
 });

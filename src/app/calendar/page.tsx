@@ -5,6 +5,7 @@ import { label, useApi } from "@/lib/client";
 import { addDays, fmtDate, fmtTime, ymd } from "@/lib/dates";
 import { Badge, Card, Loading, PageHeader, Segmented } from "@/components/ui/primitives";
 import { useCrud } from "@/components/app/crud";
+import { GoogleCalendarPanel } from "@/components/app/google-settings";
 
 interface Ev { id: string; source: "appointment" | "milestone" | "task"; type: string; title: string; startsAt: string; endsAt: string | null; location: string | null; contactName: string | null; address: string | null; refId: string; done?: boolean }
 const TONE: Record<string, string> = { showing: "info", listing_appointment: "gold", buyer_consultation: "info", open_house: "gold", inspection: "warn", appraisal: "warn", final_walkthrough: "warn", closing: "ok", client_follow_up: "neutral", personal: "neutral", deadline: "critical" };
@@ -58,6 +59,7 @@ export default function CalendarPage() {
         </Card>
       )}
       {crud.panel}
+      <GoogleCalendarPanel />
     </div>
   );
 }

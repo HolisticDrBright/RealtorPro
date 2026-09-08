@@ -23,9 +23,9 @@ const allowed = {
 };
 
 /** Checked during drafting AND approval, so late calendar conflicts cannot slip through. */
-export function validateSchedule(input: unknown) {
+export function validateSchedule(input: unknown, ignoreAppointmentId?: string) {
   const items = ScheduleItems.parse(input);
-  const appointments = db.select().from(s.appointments).all();
+  const appointments = db.select().from(s.appointments).all().filter((a) => a.id !== ignoreAppointmentId);
   return items.map(({ entity, fields }) => {
     if (Object.keys(fields).some((k) => !allowed[entity].includes(k))) throw new AppError("validation_error", "Jarvis can only draft new tasks, call reminders and local appointments—not complete, delete or edit existing records.");
     const clean = Object.fromEntries(Object.entries(fields).filter(([, v]) => v !== null && v !== undefined && v !== ""));

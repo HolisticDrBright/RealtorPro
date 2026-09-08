@@ -57,7 +57,7 @@ try {
   await page.route("**/api/jarvis", async (route) => {
     if (route.request().method() !== "POST") return route.continue();
     const body = route.request().postDataJSON(); sentQuestion = body.question;
-    assert.equal(body.consent, true); assert.equal(body.allowScheduling, true);
+    assert.equal(body.consent, true); assert.equal(body.allowScheduling, true); assert.equal(body.allowChanges, true); assert.equal(body.allowExternal, true);
     const review = await post("/api/reviews", { payload: { action: "schedule", items }, source: "Jarvis browser test" }); reviewIds.push(review.reviewId);
     const sources = [{ entity: "contacts", id: c.id, label: "JarvisBrowser Test", href: `/contacts/${c.id}` }];
     sqlite.prepare("INSERT INTO jarvis_turns (id, question, answer, status, model, time_zone, sources, drafts, review_id, usage) VALUES (?, ?, ?, 'complete', 'simulated-browser-test', 'America/Los_Angeles', ?, ?, ?, ?)").run(body.id, body.question, "Your task draft is ready for approval. It has not been saved.", JSON.stringify(sources), JSON.stringify(items), review.reviewId, JSON.stringify({ inputTokens: 10, outputTokens: 5, requests: 1 }));
@@ -79,7 +79,7 @@ try {
   const approved = page.waitForResponse((r) => r.url().endsWith("/api/import/apply") && r.request().method() === "POST");
   await page.getByRole("button", { name: "Approve & save 1 item", exact: true }).click();
   assert.equal((await approved).status(), 200);
-  await page.getByText("Approved and saved in RealtorPro", { exact: true }).waitFor();
+  await page.getByText("Approved changes applied", { exact: true }).waitFor();
   const tasks = await read(`/api/tasks?q=${encodeURIComponent(taskTitle)}`);
   assert.equal(tasks.count, 1); created.push(["tasks", tasks.items[0].id]);
   assert.equal(tasks.items[0].contactId, c.id);

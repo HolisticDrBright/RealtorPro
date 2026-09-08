@@ -37,6 +37,7 @@ function protect(value: string, decrypt: boolean): string {
 }
 let cached: { encrypted: string; key: string } | undefined;
 export const encryptApiKey = (key: string) => protect(key, false);
+export const decryptProtectedValue = (value: string) => protect(value, true);
 export function saveClaudeConnection(key: string, model: string): string | null {
   const previous = readConnections();
   let next: NonNullable<Connections["claude"]>;

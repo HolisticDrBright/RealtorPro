@@ -138,6 +138,7 @@ Still verify on the real MacBook: Finder launch, folder selection/cancellation,
 privacy and Keychain dialogs, Safari, sleep/wake and an optional paid Claude
 generation. Automated CI cannot verify personal permissions or provider credit.
 
-Gmail/Google Calendar sync, Follow Up Boss and the commercial studios are not
-implemented here. Never expose this local app to the LAN/internet. Graphify is
+Google Calendar now has [OAuth setup, event reads and reviewed creation](GOOGLE_CALENDAR.md).
+Gmail, automatic two-way calendar sync, Follow Up Boss and the commercial studios
+are not implemented here. Never expose this local app to the LAN/internet. Graphify is
 in docs/graphify/graph.html; its CDN libraries need internet on first load.

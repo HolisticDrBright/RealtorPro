@@ -1,123 +1,114 @@
-# Ask Jarvis
+# Ask Jarvis — app, vault and Google Calendar
 
-Use **Ask Jarvis** in the top bar or sidebar. It uses the Claude API connection
-already saved in Integrations. No new paid service, API key or browser extension
-is required by this implementation. Anthropic API usage is still billed separately
-from a Claude subscription.
+Open **Ask Jarvis** in the top bar or sidebar. It uses the existing Claude API
+connection. Type or press Microphone; optional controls send recognized questions
+automatically and read answers aloud. This is push-to-talk, not an always-listening
+wake-word assistant. Anthropic API billing remains separate from a Claude subscription.
 
-## First conversation
+## What Jarvis can do
 
-1. Import the records you want to ask about into RealtorPro. Merely indexing
-   Obsidian notes does not turn them into CRM records. Review and approve an
-   Obsidian import first if needed.
-2. Open Ask Jarvis and allow the stated CRM-sharing consent for this browser
-   session. Type a question, or expand **Voice & privacy**, enable speech
-   recognition, and press **Microphone**. Allow browser microphone access if asked.
-3. Check the recognized words, then press **Ask Jarvis**. Optional controls send
-   recognized questions automatically and read answers aloud. Recognition is
-   push-to-talk, not an always-listening wake-word assistant.
-4. Open **Records Jarvis consulted** to inspect the records behind a response.
-   Answers can be wrong or incomplete; verify important facts.
-5. Scheduling shows a review with names, dates and the app computer's time zone.
-   Press **Approve & save** to create the displayed items, or **Discard drafts**.
+Jarvis can read every app record collection: contacts, buyers, sellers, investors,
+properties, listings, opportunities, transactions, milestones, offers, tasks,
+calls, appointments, CRM notes, activity, touchpoints, notifications and agent profile.
+It can propose filling any editable field, creating linked records, updating,
+completing tasks or deleting app records using the app's schemas and relationship hooks.
+Generated IDs/timestamps, database internals, credentials and connection controls
+are not editable fields. Unknown facts must not be invented to fill blank fields.
 
-Questions are saved locally and each has a reopenable `/jarvis/<id>` page. Follow-up
-questions include up to four previous answers as context, with fresh record lookups
-instructed for current facts. The sidebar shows the latest 40 questions.
+A review can contain up to **20 CRM changes**, including a new contact with linked
+buyer/investor profiles and notes. Notifications are in-app alerts; tasks and
+touchpoints provide dated reminders. This does not add email/push delivery or
+automatic background signal monitoring.
 
-## Useful questions
+Jarvis reads **unimported Markdown notes directly from the connected vault**.
+Enable **Allow selected vault text** in Integrations, save the connection, and
+keep external access enabled in Jarvis. There is no second vault selection.
+Existing include/exclude folder rules still apply. Empty include list means all
+non-hidden, non-excluded folders. Hidden files, symlinks, traversal and files outside
+the vault are blocked. Jarvis cannot change its own access permissions.
 
-- “What are Alex Chen's buying criteria, and what information is missing?”
-- “Which investors have a multifamily strategy? Show the saved budgets and areas.”
-- “Summarize the off-market lead at 123 Main Street and my notes about it.”
-- “Find Maria Lopez and draft a call reminder for October 6, 2030 at 10 AM.”
-- “Draft a 30-minute local appointment with Maria Lopez on October 6, 2030 at 2 PM.”
-- “Create a task to prepare Maria's property shortlist, due October 5, 2030.”
+Jarvis can propose creating or replacing **one vault note** per review. It must
+read every chunk of an existing note first. The before/after preview is shown.
+Approval rechecks the hash and vault permissions, saves a recovery copy under
+`workspace/backups/vault/<review-id>.json`, and then writes the note.
+Edits above 100,000 characters and original-file deletion are not supported.
+Reading a note does not automatically mirror it to the CRM: ask for CRM changes,
+then approve them.
 
-These names, addresses and dates are illustrative, not installed sample records.
+**[Google Calendar setup](GOOGLE_CALENDAR.md)** is now available. After sign-in
+and selection, Jarvis can read that calendar and propose **one new Google event**.
+Specify Google or local calendar when scheduling. Google events are not duplicated
+as local appointments. No Google edits/deletions, invitations, Gmail or automatic
+two-way synchronization are implemented.
 
-## What it can and cannot do
+Each question produces one review: a CRM batch, vault write, Google event or legacy
+local scheduling batch. Mixed-system work uses separate approvals. Full app access
+does not mean arbitrary code execution, secret access, destructive workspace resets,
+account-connection changes or unattended approvals.
 
-Jarvis can search saved contacts, buyers, sellers, investors, properties, listings,
-opportunities (including off-market leads), transactions, offers, milestones,
-tasks, calls, appointments, CRM notes and activity. It can draft up to three new
-tasks, call reminders or appointments per question, in one atomic approval batch.
-It cannot edit/delete existing records, mark tasks complete, send messages,
-place calls, send invitations, or book anything without approval.
+## Try these
 
-**Appointments are local RealtorPro calendar entries, not Google/Apple calendar
-events. Calls are reminders in Calls, not phone calls.** Existing local appointment
-overlaps are rejected; this is not an availability check against Gmail, Google
-Calendar, Apple Calendar, other people's calendars or call reminders. Date/time
-interpretation uses the app computer's zone; review carefully around DST changes.
-Missing meeting duration/end time or call date/time must be supplied.
+- “Read Clients/Alex.md and fill Alex's buyer profile with its criteria. Leave
+  anything the note doesn't say blank.”
+- “Create Jamie Smith as a contact and a linked buyer profile with a $900,000
+  maximum budget, three bedrooms and a garage.”
+- “Mark the shortlist task complete and add a contact note explaining what I sent.”
+- “Create an in-app alert reminding me to verify Alex's preapproval.”
+- “Read Clients/Alex.md and add a follow-up checklist, preserving everything else.”
+- “What is on my selected Google Calendar tomorrow?”
+- “Draft a Google Calendar event for October 6, 2030 from 2 to 2:30 PM Pacific
+  called Buyer consultation.”
 
-Jarvis does not read raw Obsidian files or the vault index, Gmail, websites, MLS
-or third-party property feeds. It cannot automatically discover information that
-has not been saved in the CRM. It is not an investment, valuation or legal adviser.
+These are examples, not installed records. Missing connections/data never produce
+a fake answer fallback.
 
-## Privacy, voice and cost
+## Review and privacy
 
-CRM lookup happens locally, but the question, retrieved CRM fields (including
-notes) and recent conversation context go to the connected Anthropic API.
-Original vault-folder privacy controls govern vault extraction, not copies of
-records already imported into the CRM. API keys and connection settings are
-excluded from Jarvis tools. Retrieved text is treated as untrusted data.
+Changes require **Approve & save**. Verify destination, people, fields, dates,
+time zones and full before/after preview. Deleting contacts/properties can cascade
+to linked records. Database backups precede approval; vault recovery copies are
+separate. Restoring SQLite does not undo vault edits or Google events.
+Changed data and previews older than 24 hours require fresh review.
 
-Browser speech recognition is optional, has limited browser compatibility, and
-may send audio to a browser provider; it is not guaranteed offline. Read-aloud
-prefers a local English voice but can use the browser's default voice service.
-RealtorPro stores text transcripts and answers, not audio. If speech is unavailable
-or denied, type or use macOS dictation in the question field. See the browser
-documentation for [speech recognition](https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition)
-and [speech synthesis](https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesis).
+The new consent checkbox must be accepted again after this access expansion.
+Questions share relevant app fields, permitted vault text, selected Google event
+details and recent conversation with Anthropic. Uncheck external access for
+CRM-only questions. The vault's Claude-sharing flag must also be enabled.
+Imported CRM copies are not governed by later vault exclusions. Retrieved text is
+untrusted data, never permission to act. Credentials are excluded from tools/history.
 
-Each question allows at most 6 Claude requests, 10 tool calls, 2,200 output tokens
-per request, 25 records per lookup, 10,000 scanned records per collection, and a
-two-minute provider deadline. Long fields/results and context are bounded. These
-are workload limits, **not a dollar spending cap**. Ask narrower questions if
-results are incomplete. Only one question runs at a time in the local app process.
-The answer records model ID, aggregate token counts and request count; exact dollar
-cost is not guessed for custom models. Check your Anthropic usage for actual billing.
-The implementation uses [Anthropic client tool use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/handle-tool-calls).
+Questions, answers, sources, proposals and token usage are saved locally at
+`/jarvis/<id>`. Up to four previous answers are context; the recent list shows
+40 questions. History and backups can contain sensitive client/vault text and
+are not separately encrypted by the app. Protect your OS account, disk and backups.
+Start fresh clears records/history, not backups, vault files or Google events.
+Individual-conversation deletion is not implemented.
 
-History is part of the local SQLite workspace and database backups. It can contain
-sensitive client details and is not separately encrypted by the app. Protect your
-computer account and backups. There is no individual-conversation deletion UI in
-this release; the existing destructive **Start fresh** action clears Jarvis history
-along with the rest of CRM data, but does not remove historical backups.
+Browser speech recognition may send audio to its provider and may not work offline.
+Read-aloud prefers a local English voice but can use the default browser service.
+RealtorPro stores transcripts, not audio. Use typing/macOS dictation if unsupported.
+See [speech recognition](https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition).
 
-## Approval and failure handling
+## Limits and verification
 
-Drafts do not write CRM/calendar rows. Approval rechecks validation, database
-changes and appointment overlaps, creates a database backup, and saves the batch
-atomically. Previews expire after 24 hours; changed data requires a fresh preview.
-Repeated approval or retry of the same question ID does not duplicate records
-or repeat a Claude call. Starting a new question is a new billable request.
+Each question has six Claude requests, ten tool calls, 4,000 output tokens per
+request and a two-minute Claude deadline. CRM reads scan up to 10,000 rows per
+collection, returning up to 25 rows and bounded text. Vault search checks 100
+notes per page and their first 20,000 characters; full reads support chunks up to
+20,000 characters with a 2 MB file limit. Google returns up to 100 events in a
+range of at most 90 days and flags incomplete results. Ask focused questions and
+follow pagination. These are not dollar limits; check Anthropic billing.
+Interrupted questions are not automatically resumed or rebilled; check history
+before starting a new question. AI answers can be mistaken; verify linked sources.
 
-If a request is interrupted, use its saved-question link/history before retrying.
-An app shutdown can leave a question marked pending; it is not automatically
-resumed or rebilled. Start a new conversation if it remains pending past two
-minutes. Provider failures are stored with sanitized, actionable error text.
+Unit/integration tests use isolated databases/files and simulated Anthropic/Google
+boundaries. Browser tests on the isolated port-3100 workspace use synthetic Google
+setup credentials and simulated speech/model output, but real encrypted storage,
+history, review and record endpoints. The app has no demo-answer mode.
+Live Google sign-in, a live microphone and a paid Claude response still require
+the user's account on the target Mac.
 
-## Verification
-
-`npm test` includes isolated Jarvis integration tests with only the paid Claude
-provider boundary simulated. They exercise real SQLite retrieval, persisted
-history, consent, idempotency, bounded tools, date validation, overlap checks,
-draft previews, discard, backups and atomic approval.
-
-`npm run test:jarvis-browser` requires the isolated browser fixture on port 3100
-described in the existing browser scripts. It refuses a connected Claude key or
-personal vault. Only speech and model output are simulated by the test harness;
-the app has no demo-answer fallback. Missing-key errors, saved-history reads,
-review approval, created tasks and mobile/desktop rendering use the real backend.
-Live microphone recognition, spoken-audio quality and a paid Claude response
-must still be checked on the target Mac/browser with the user's own account.
-
-## Updating a Mac installation
-
-Stop the app with Control-C, then run from its installation folder:
+Stop the app and update from its installation folder:
 
 ```bash
 git pull --ff-only origin codex/production-readiness
@@ -127,5 +118,5 @@ npm run build
 npm run launch
 ```
 
-Setup backs up existing data and adds the Jarvis history table. It does not seed
-sample data, clear existing records, or require reconnecting Claude/Obsidian.
+Setup preserves existing records and connections. This expansion adds no new
+database tables beyond the original Jarvis history migration.

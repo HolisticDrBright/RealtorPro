@@ -16,12 +16,14 @@ for the generated Graphify architecture map.
 See [Investors](docs/INVESTORS.md) for buying criteria, self-reported capital,
 shared follow-ups, and approved imports from Claude or Obsidian.
 
-**[Ask Jarvis](docs/JARVIS.md)** adds typed or push-to-talk questions about saved
-CRM records, optional spoken answers, linked sources and saved conversation
-history using the existing Claude API connection. Jarvis can draft tasks, call
-reminders and local appointments; every batch requires approval before saving.
-Browser voice support varies. No phone calls, invitations, raw vault reads or
-external-calendar/Gmail access are included.
+**[Ask Jarvis](docs/JARVIS.md)** answers typed or spoken questions about app records,
+permitted Obsidian notes (including unimported notes) and the selected Google
+Calendar. It can propose filling editable fields, creating/updating/deleting app
+records, notes, alerts and tasks, editing a vault note, or creating a Google event.
+Every change requires approval. Sources and conversations are saved. Credentials,
+hidden/excluded files, Gmail, invitations and automatic two-way sync are excluded.
+**[Connect Google Calendar](docs/GOOGLE_CALENDAR.md)** in Integrations using your
+own Google OAuth client; setup and test instructions are built into that screen.
 
 **Off-Market** in the sidebar shows off-market and pocket-listing leads from
 the existing Opportunities records—no duplicate database or new API needed.
@@ -180,7 +182,8 @@ Never point these verification scripts at your personal workspace.
 
 ## Not implemented in this branch
 
-- Gmail and Google Calendar OAuth/sync. Calendar currently stores local events.
+- Gmail and automatic two-way Google Calendar sync. Google OAuth, selected-calendar
+  reads and reviewed event creation are available; local and Google views remain separate.
 - Follow Up Boss integration.
 - OM Studio, Rent Roll Studio, Comp Lab, Signal Scout, media/video generation.
 - Direct MLS/Zillow ingestion or licensed property-photo acquisition.

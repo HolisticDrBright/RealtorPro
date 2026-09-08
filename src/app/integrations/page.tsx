@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ClaudeSettings, VaultSettings, ProfileSettings } from "@/components/app/connection-settings";
 import type { ClaudeConnectionStatus } from "@/components/app/connection-settings";
 import { BackupSettings } from "@/components/app/backup-settings";
+import { GoogleSettings } from "@/components/app/google-settings";
 import { api, bump, toast, useApi } from "@/lib/client";
 import { fmtDateTime } from "@/lib/dates";
 import { Badge, Card, Confirm, ErrorBox, Loading, PageHeader } from "@/components/ui/primitives";
@@ -44,6 +45,7 @@ export default function IntegrationsPage() {
     <div className="fade-in">
       <PageHeader title="Integrations" sub="Claude and your Obsidian vault feed the dashboard. Everything is reviewed before it is saved." />
       <ProfileSettings />
+      <GoogleSettings />
 
       <Card className="mb-4" title={<h2 className="card-title flex items-center gap-2">Your data <Badge tone={w.empty ? "neutral" : "ok"}>{w.empty ? "Empty" : `${w.contacts} contacts · ${w.properties} properties`}</Badge></h2>} action={!w.empty && <button className="card-link text-crit" onClick={() => setConfirmClear(true)}>Start fresh: delete every record</button>}>
         <div className="text-[13px] text-ink-2">
@@ -63,7 +65,8 @@ export default function IntegrationsPage() {
 
         <Card title={<h2 className="card-title flex items-center gap-2">Obsidian vault <Badge tone={o.exists ? "ok" : "neutral"}>{o.exists ? o.dirName : o.configured ? "Folder not found" : "Not connected"}</Badge></h2>}>
           <VaultSettings key={`${o.dir}-${o.allowClaude}`} dir={o.dir} include={o.include} exclude={o.exclude} allowClaude={o.allowClaude} isMac={c.platform === "darwin"} reload={reload} />
-          {o.exists && <dl className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[13px]">{[["Notes indexed", o.noteCount], ["Linked to a contact", o.linked], ["Notes with type: frontmatter", o.importable], ["Last indexed", fmtDateTime(o.lastIndexedAt)], ["App writes only into", `${o.writeFolder}/`]].map(([k, v]) => <div key={String(k)} className="flex justify-between gap-3 border-b border-line-2 py-1.5"><dt className="text-ink-3">{k}</dt><dd className="font-medium">{String(v)}</dd></div>)}</dl>}
+          {o.exists && <dl className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[13px]">{[["Notes indexed", o.noteCount], ["Linked to a contact", o.linked], ["Notes with type: frontmatter", o.importable], ["Last indexed", fmtDateTime(o.lastIndexedAt)], ["Quick export folder", `${o.writeFolder}/`]].map(([k, v]) => <div key={String(k)} className="flex justify-between gap-3 border-b border-line-2 py-1.5"><dt className="text-ink-3">{k}</dt><dd className="font-medium">{String(v)}</dd></div>)}</dl>}
+          <p className="text-[12px] text-ink-3 mt-2">Ask Jarvis can read permitted notes without importing them and propose edits anywhere within the allowed vault folders. Existing-note edits require approval and keep a recovery copy. Hidden and excluded folders remain inaccessible.</p>
           <div className="flex gap-2 mt-3 flex-wrap"><button className="btn" disabled={!o.exists || busy === "index"} onClick={() => run("index", reindex)}>{busy === "index" ? "Indexing…" : "Re-index vault"}</button><button className="btn btn-primary" disabled={!o.exists || busy === "vault"} onClick={() => run("vault", previewVault)}>{busy === "vault" ? "Reading…" : "Import typed notes"}</button></div>
 
           <div className="mt-4 rounded-lg border border-line p-3">
@@ -123,7 +126,7 @@ Met at the Coral Ridge open house. Want a pool…`}</pre>
       </Card>
       <BackupSettings />
       <Card className="mt-4" title="Other integrations">
-        <p className="text-[13px] text-ink-2">Gmail, Google Calendar, Follow Up Boss, OM Studio, Rent Roll Studio, Comp Lab and Signal Scout are not connected or implemented in this command-center branch. The calendar currently shows local appointments only.</p>
+        <p className="text-[13px] text-ink-2">Google Calendar setup is available above. Gmail, Follow Up Boss, OM Studio, Rent Roll Studio, Comp Lab and Signal Scout are not connected or implemented in this command-center branch. Google events are shown separately from local appointments; no automatic two-way sync.</p>
       </Card>
 
       <Confirm open={confirmClear} title="Delete every record?" body="All contacts, buyers, sellers, properties, listings, escrows, offers, tasks, calls, appointments, notes, opportunities and alerts will be removed. Your name, brokerage, income goal and commission defaults stay. An automatic database backup is created first. Restore it from Backups if needed." confirmLabel="Delete everything" onConfirm={clearAll} onCancel={() => setConfirmClear(false)} />
