@@ -22,6 +22,7 @@ export const NAV: { href: string; label: string; icon: ReactNode; key?: string }
   { href: "/buyers", label: "Buyers", icon: <I d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8" />, key: "4" },
   { href: "/sellers", label: "Sellers", icon: <I d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z" />, key: "5" },
   { href: "/investors", label: "Investors", icon: <I d="M4 20V12h4v8M10 20V8h4v12M16 20V4h4v16M2 20h20" /> },
+  { href: "/off-market", label: "Off-Market", icon: <I d="M3 10l9-7 9 7M5 9v12h14V9M10 21v-6h4v6" /> },
   { href: "/listings", label: "Listings", icon: <I d="M4 4h16v16H4zM4 10h16M10 10v10" />, key: "6" },
   { href: "/pipeline", label: "Pipeline", icon: <I d="M4 6h4v12H4zM10 6h4v8h-4zM16 6h4v5h-4z" />, key: "7" },
   { href: "/transactions", label: "Transactions", icon: <I d="M3 6h18M3 12h18M3 18h12" />, key: "8" },

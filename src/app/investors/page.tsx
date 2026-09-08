@@ -35,6 +35,7 @@ export default function InvestorsPage() {
       <div className="flex flex-wrap items-center gap-3 text-[13px]">
         {!loading && !error && <><Badge tone="active">{rows.filter((r) => r.status === "active").length} active investors</Badge><span>{due} active follow-ups due</span></>}
         <Link href="/opportunities" className="link">Open opportunities →</Link>
+        <Link href="/off-market" className="link">Off-market leads →</Link>
         <Link href="/integrations" className="link">Import from notes →</Link>
       </div>
       <p className="text-[12px] text-ink-3 mt-2">Capital is self-reported, not verified. Return targets are client preferences—not forecasts. Claude imports require your approval in Review Inbox.</p>

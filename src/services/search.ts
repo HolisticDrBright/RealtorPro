@@ -2,6 +2,7 @@ import "server-only";
 import { db } from "@/db";
 import * as s from "@/db/schema";
 import { loadContext } from "./context";
+import { isOffMarket } from "@/lib/opportunities";
 
 export interface SearchHit { kind: "contact" | "investor" | "property" | "listing" | "transaction" | "note" | "task" | "opportunity"; id: string; title: string; subtitle: string | null; href: string }
 
@@ -21,6 +22,6 @@ export function search(q: string, limit = 25): SearchHit[] {
   for (const t of db.select().from(s.transactions).all()) { const p = ctx.property(t.propertyId); if (has(p?.address, ctx.names(t.contactId), t.notes)) hits.push({ kind: "transaction", id: t.id, title: `${p?.address ?? "Transaction"} · $${Math.round(t.purchasePrice).toLocaleString()}`, subtitle: `${t.status} · ${t.side} side · ${ctx.names(t.contactId) ?? ""}`, href: `/transactions?focus=${t.id}` }); }
   for (const n of db.select().from(s.notes).all()) if (has(n.body)) hits.push({ kind: "note", id: n.id, title: n.body.slice(0, 90), subtitle: [ctx.names(n.contactId), ctx.addresses(n.propertyId)].filter(Boolean).join(" · ") || "Note", href: `/notes?focus=${n.id}` });
   for (const t of db.select().from(s.tasks).all()) if (has(t.title, t.notes)) hits.push({ kind: "task", id: t.id, title: t.title, subtitle: `Task · ${t.completedAt ? "done" : t.dueDate ?? "no date"}`, href: `/tasks?focus=${t.id}` });
-  for (const o of db.select().from(s.opportunities).all()) if (has(o.address, o.area, o.sourceAgent, o.notes)) hits.push({ kind: "opportunity", id: o.id, title: o.address, subtitle: `Opportunity · ${o.kind.replace(/_/g, " ")} · ${o.area ?? ""}`, href: `/opportunities?focus=${o.id}` });
+  for (const o of db.select().from(s.opportunities).all()) if (has(o.address, o.area, o.sourceAgent, o.notes)) hits.push({ kind: "opportunity", id: o.id, title: o.address, subtitle: `Opportunity · ${o.kind.replace(/_/g, " ")} · ${o.area ?? ""}`, href: `${isOffMarket(o.kind) ? "/off-market" : "/opportunities"}?focus=${o.id}` });
   return hits.slice(0, limit);
 }

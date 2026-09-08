@@ -16,6 +16,17 @@ for the generated Graphify architecture map.
 See [Investors](docs/INVESTORS.md) for buying criteria, self-reported capital,
 shared follow-ups, and approved imports from Claude or Obsidian.
 
+**Off-Market** in the sidebar shows off-market and pocket-listing leads from
+the existing Opportunities records—no duplicate database or new API needed.
+Add/edit a lead, record its source and expected price, search by address/area/source,
+and track New → Watching → Pursuing → Matched. Archived/dead leads remain
+available in the status filter and can be restored. Notes and follow-up tasks
+can use the linked contact. Existing approved opportunity imports appear here
+when their type is `off_market` or `pocket_listing`; other types stay in All
+opportunities. Buyer matches are criteria hints, not verified suitability.
+This tab does not automatically discover owners, scrape websites, send outreach,
+or match investor profiles. No sample leads are loaded.
+
 ## Start locally
 
 Use Node.js 22.12+ or Node.js 24. From this project folder:
