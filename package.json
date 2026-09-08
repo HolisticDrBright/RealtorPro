@@ -15,6 +15,7 @@
     "test:browser": "node scripts/verify-browser.mjs",
     "test:investors-browser": "node scripts/verify-investors.mjs",
     "test:off-market-browser": "node scripts/verify-off-market.mjs",
+    "test:jarvis-browser": "node scripts/verify-jarvis.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",

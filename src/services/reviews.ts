@@ -9,8 +9,10 @@ import { AppError } from "@/lib/errors";
 import { ImportBundle, applyImport, type ImportBundleT } from "./importer";
 import { afterCreate, afterUpdate } from "./hooks";
 import { createBackup } from "./backups";
+import { ScheduleItems, validateSchedule } from "./scheduling";
 
 export const Proposal = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("schedule"), items: ScheduleItems }),
   z.object({ action: z.literal("import"), bundle: ImportBundle }),
   z.object({ action: z.enum(["create", "update", "delete"]), entity: z.string(), id: z.string().optional(), fields: z.record(z.unknown()).default({}) }),
 ]);
@@ -25,6 +27,7 @@ function fingerprint() {
   return hash.digest("hex");
 }
 function execute(p: ProposalT): unknown {
+  if (p.action === "schedule") return validateSchedule(p.items).map((item) => execute({ action: "create", entity: item.entity, fields: item.fields }));
   if (p.action === "import") return applyImport(p.bundle);
   if (!Object.prototype.hasOwnProperty.call(tables, p.entity) || p.entity === "settings") throw new AppError("bad_request", "Unsupported agent collection.");
   const entity = p.entity as EntityName, t = tables[entity];

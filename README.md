@@ -16,6 +16,13 @@ for the generated Graphify architecture map.
 See [Investors](docs/INVESTORS.md) for buying criteria, self-reported capital,
 shared follow-ups, and approved imports from Claude or Obsidian.
 
+**[Ask Jarvis](docs/JARVIS.md)** adds typed or push-to-talk questions about saved
+CRM records, optional spoken answers, linked sources and saved conversation
+history using the existing Claude API connection. Jarvis can draft tasks, call
+reminders and local appointments; every batch requires approval before saving.
+Browser voice support varies. No phone calls, invitations, raw vault reads or
+external-calendar/Gmail access are included.
+
 **Off-Market** in the sidebar shows off-market and pocket-listing leads from
 the existing Opportunities records—no duplicate database or new API needed.
 Add/edit a lead, record its source and expected price, search by address/area/source,

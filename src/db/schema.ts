@@ -32,6 +32,18 @@ export const reviews = sqliteTable("reviews", {
   createdAt: createdAt(), updatedAt: updatedAt(),
 });
 
+export const jarvisTurns = sqliteTable("jarvis_turns", {
+  id: id(), parentId: text("parent_id"), question: text("question").notNull(),
+  answer: text("answer"), status: text("status").notNull().default("pending"), error: text("error"),
+  model: text("model").notNull(), timeZone: text("time_zone").notNull(),
+  sources: json<import("@/lib/jarvis").JarvisSource[]>("sources").notNull().default([]),
+  drafts: json<import("@/lib/jarvis").ScheduleDraft[]>("drafts").notNull().default([]),
+  reviewId: text("review_id"),
+  usage: json<{ inputTokens: number; outputTokens: number; requests: number }>("usage"),
+  estimatedCostUsd: real("estimated_cost_usd"), // Null when the configured model's current price is unknown.
+  createdAt: createdAt(), updatedAt: updatedAt(),
+});
+
 export const CONTACT_TYPES = ["buyer", "seller", "investor", "past_client", "lead", "agent", "vendor", "sphere"] as const;
 export const LEAD_SOURCES = ["referral", "past_client", "instagram", "open_house", "cold_outreach", "agent_referral", "website", "zillow", "off_market", "sphere", "other"] as const;
 export const PIPELINE_STAGES = ["new_lead", "contacted", "qualified", "active_buyer", "active_seller", "showing_homes", "listing_appointment", "offer_submitted", "negotiating", "in_escrow", "closed", "nurture"] as const;

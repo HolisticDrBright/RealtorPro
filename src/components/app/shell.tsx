@@ -16,6 +16,7 @@ import { relative } from "@/lib/dates";
  */
 
 export const NAV: { href: string; label: string; icon: ReactNode; key?: string }[] = [
+  { href: "/jarvis", label: "Ask Jarvis", icon: <I d="M12 3a3 3 0 00-3 3v6a3 3 0 006 0V6a3 3 0 00-3-3zM5 10v2a7 7 0 0014 0v-2M12 19v3M8 22h8" /> },
   { href: "/", label: "Dashboard", icon: <I d="M3 3h7v7H3zM14 3h7v4h-7zM14 10h7v11h-7zM3 13h7v8H3z" />, key: "1" },
   { href: "/tasks", label: "Tasks", icon: <I d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />, key: "2" },
   { href: "/calls", label: "Calls", icon: <I d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012.1 4.2 2 2 0 014.1 2h3a2 2 0 012 1.7c.1.9.3 1.8.6 2.7a2 2 0 01-.5 2.1L8 9.7a16 16 0 006 6l1.2-1.2a2 2 0 012.1-.5c.9.3 1.8.5 2.7.6a2 2 0 011.7 2z" />, key: "3" },
@@ -121,6 +122,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <button className="hidden md:flex items-center gap-2 h-10 w-full max-w-[520px] rounded-lg border border-line bg-panel px-3 text-[13.5px] text-ink-3 hover:border-ink-3 transition-colors mx-auto" onClick={() => setPalette(true)} aria-label="Search">
             <I d="M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.3-4.3" /><span className="flex-1 text-left">Search contacts, properties, notes, etc...</span><kbd className="text-[11px] border border-line rounded px-1.5 py-0.5 bg-ground">⌘K</kbd>
           </button>
+          <Link className="btn shrink-0 px-2 md:px-3" href="/jarvis" aria-label="Ask Jarvis"><span className="hidden sm:inline">Ask&nbsp;</span>Jarvis</Link>
           <div className="relative">
             <button className="btn btn-primary" onClick={() => setAddMenu((v) => !v)} aria-haspopup="menu" aria-expanded={addMenu}>+ Add <I d="M6 9l6 6 6-6" /></button>
             {addMenu && (

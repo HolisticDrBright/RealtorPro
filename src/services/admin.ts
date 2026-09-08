@@ -9,6 +9,7 @@ import * as s from "@/db/schema";
  */
 
 const DATA_TABLES = {
+  jarvisTurns: s.jarvisTurns,
   reviews: s.reviews,
   notifications: s.notifications, touchpoints: s.touchpoints, opportunities: s.opportunities, activities: s.activities, notes: s.notes,
   appointments: s.appointments, calls: s.calls, tasks: s.tasks, offers: s.offers, milestones: s.milestones, transactions: s.transactions,
