@@ -15,6 +15,13 @@
       "when": 1788817904409,
       "tag": "0001_far_thunderbolts",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788825768815,
+      "tag": "0002_chief_sunset_bain",
+      "breakpoints": true
     }
   ]
 }

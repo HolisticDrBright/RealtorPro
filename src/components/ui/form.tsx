@@ -56,7 +56,8 @@ export function RecordForm({ entity, fields, initial, onDone, submitLabel }: { e
           case "date": control = <input {...common} type="date" />; break;
           case "time": control = <input {...common} type="time" />; break;
           case "datetime": control = <input {...common} type="datetime-local" value={typeof v === "string" ? v.slice(0, 16) : ""} />; break;
-          case "list": control = <input id={id} className="input" value={Array.isArray(v) ? v.join(", ") : String(v ?? "")} placeholder={f.placeholder ?? "Comma-separated"} onChange={(e) => set(f.name, e.target.value.split(",").map((x) => x.trim()).filter(Boolean))} />; break;
+          // Preserve commas/spaces while typing. The API normalizes the list on save.
+          case "list": control = <input id={id} className="input" value={Array.isArray(v) ? v.join(", ") : String(v ?? "")} placeholder={f.placeholder ?? "Comma-separated"} onChange={(e) => set(f.name, e.target.value)} />; break;
           case "checkbox": control = <label className="inline-flex items-center gap-2 h-9 text-[13.5px]"><input id={id} type="checkbox" checked={!!v} onChange={(e) => set(f.name, e.target.checked)} />{f.help}</label>; break;
           default: control = <input {...common} type="text" />;
         }

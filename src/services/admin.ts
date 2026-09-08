@@ -12,7 +12,7 @@ const DATA_TABLES = {
   reviews: s.reviews,
   notifications: s.notifications, touchpoints: s.touchpoints, opportunities: s.opportunities, activities: s.activities, notes: s.notes,
   appointments: s.appointments, calls: s.calls, tasks: s.tasks, offers: s.offers, milestones: s.milestones, transactions: s.transactions,
-  listings: s.listings, properties: s.properties, sellers: s.sellers, buyers: s.buyers, contacts: s.contacts, vaultNotes: s.vaultNotes,
+  listings: s.listings, properties: s.properties, sellers: s.sellers, buyers: s.buyers, investors: s.investors, contacts: s.contacts, vaultNotes: s.vaultNotes,
 } as const;
 
 export function clearAllData(): Record<string, number> {

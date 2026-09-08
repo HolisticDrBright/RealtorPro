@@ -16,6 +16,11 @@ export class AppError extends Error {
 }
 
 export function errorResponse(err: unknown): NextResponse {
+  // SQLite errors can be wrapped by Drizzle. Reveal only this known, actionable constraint.
+  const cause = err instanceof Error && err.cause ? err.cause : err;
+  if (cause instanceof Error && cause.message.includes("UNIQUE constraint failed: investors.contact_id")) {
+    return NextResponse.json({ error: { code: "conflict", message: "This contact already has an investor profile. Edit the existing profile instead." } }, { status: 409 });
+  }
   if (err instanceof AppError) return NextResponse.json({ error: { code: err.code, message: err.message, details: err.details } }, { status: STATUS[err.code] });
   if (err instanceof ZodError) {
     const issues = err.issues.map((i) => `${i.path.join(".") || "value"}: ${i.message}`);

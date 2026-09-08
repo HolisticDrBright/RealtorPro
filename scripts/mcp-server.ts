@@ -17,7 +17,7 @@ import { loadEnvConfig } from "@next/env";
 loadEnvConfig(process.cwd());
 
 const BASE = (process.env.COMMAND_CENTER_URL ?? "http://localhost:3000").replace(/\/$/, "");
-const ENTITIES = ["contacts", "buyers", "sellers", "properties", "listings", "transactions", "milestones", "offers", "tasks", "calls", "appointments", "notes", "activities", "opportunities", "touchpoints", "notifications"] as const;
+const ENTITIES = ["contacts", "buyers", "sellers", "investors", "properties", "listings", "transactions", "milestones", "offers", "tasks", "calls", "appointments", "notes", "activities", "opportunities", "touchpoints", "notifications"] as const;
 
 async function call(method: string, path: string, body?: unknown) {
   const parsed = new URL(BASE);
@@ -54,7 +54,7 @@ server.registerTool("import_records", {
   inputSchema: {
     dryRun: z.boolean().default(true),
     source: z.string().default("Claude"),
-    contacts: z.array(z.object({ name: z.string(), phone: z.string().optional(), email: z.string().optional(), type: z.string().optional(), leadSource: z.string().optional(), priceMin: z.number().optional(), priceMax: z.number().optional(), preferredAreas: z.array(z.string()).optional(), notes: z.string().optional(), nextFollowUpAt: z.string().optional(), buyer: z.record(z.unknown()).optional(), seller: z.record(z.unknown()).optional() })).optional(),
+    contacts: z.array(z.object({ name: z.string(), phone: z.string().optional(), email: z.string().optional(), type: z.string().optional(), leadSource: z.string().optional(), priceMin: z.number().optional(), priceMax: z.number().optional(), preferredAreas: z.array(z.string()).optional(), notes: z.string().optional(), nextFollowUpAt: z.string().optional(), buyer: z.record(z.unknown()).optional(), seller: z.record(z.unknown()).optional(), investor: z.record(z.unknown()).describe("Investor criteria: strategy (buy_and_hold, fix_and_flip, brrrr, short_term_rental, development, commercial, other), status (active, nurture, paused), targetAreas and propertyTypes arrays, budgetMin, budgetMax, availableCapital (self-reported only), targetCapRate and targetCashOnCash (stated targets in percent), financingType, timeline, mustHaves, dealBreakers, notes. Do not infer cash from budget or calculate returns.").optional() })).optional(),
     properties: z.array(z.object({ address: z.string(), city: z.string().optional(), zip: z.string().optional(), beds: z.number().optional(), baths: z.number().optional(), sqft: z.number().optional(), lotSqft: z.number().optional(), propertyType: z.string().optional(), yearBuilt: z.number().optional(), view: z.string().optional(), notes: z.string().optional() })).optional(),
     listings: z.array(z.object({ address: z.string(), city: z.string().optional(), listPrice: z.number(), status: z.string().optional(), listedAt: z.string().optional(), sellerName: z.string().optional(), notes: z.string().optional(), nextAction: z.string().optional() })).optional(),
     transactions: z.array(z.object({ address: z.string(), clientName: z.string().optional(), side: z.string().optional(), status: z.string().optional(), purchasePrice: z.number(), commissionPct: z.number().optional(), escrowOpenedAt: z.string().optional(), closingDate: z.string().optional(), closedAt: z.string().optional(), notes: z.string().optional() })).optional(),

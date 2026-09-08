@@ -1,4 +1,4 @@
-import { index, integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 /**
@@ -32,7 +32,7 @@ export const reviews = sqliteTable("reviews", {
   createdAt: createdAt(), updatedAt: updatedAt(),
 });
 
-export const CONTACT_TYPES = ["buyer", "seller", "past_client", "lead", "agent", "vendor", "sphere"] as const;
+export const CONTACT_TYPES = ["buyer", "seller", "investor", "past_client", "lead", "agent", "vendor", "sphere"] as const;
 export const LEAD_SOURCES = ["referral", "past_client", "instagram", "open_house", "cold_outreach", "agent_referral", "website", "zillow", "off_market", "sphere", "other"] as const;
 export const PIPELINE_STAGES = ["new_lead", "contacted", "qualified", "active_buyer", "active_seller", "showing_homes", "listing_appointment", "offer_submitted", "negotiating", "in_escrow", "closed", "nurture"] as const;
 
@@ -73,6 +73,22 @@ export const contacts = sqliteTable(
   },
   (t) => ({ stageIdx: index("contacts_stage_idx").on(t.stage), typeIdx: index("contacts_type_idx").on(t.type) }),
 );
+
+export const investors = sqliteTable("investors", {
+  id: id(),
+  contactId: text("contact_id").notNull().references(() => contacts.id, { onDelete: "cascade" }),
+  strategy: text("strategy").notNull().default("other"),
+  status: text("status").notNull().default("active"),
+  targetAreas: json<string[]>("target_areas").default([]),
+  propertyTypes: json<string[]>("property_types").default([]),
+  budgetMin: real("budget_min"), budgetMax: real("budget_max"),
+  availableCapital: real("available_capital"), // Self-reported, not verified funds.
+  targetCapRate: real("target_cap_rate"), targetCashOnCash: real("target_cash_on_cash"),
+  financingType: text("financing_type"), timeline: text("timeline"),
+  mustHaves: json<string[]>("must_haves").default([]),
+  dealBreakers: json<string[]>("deal_breakers").default([]),
+  notes: text("notes"), createdAt: createdAt(), updatedAt: updatedAt(),
+}, (t) => ({ contactIdx: uniqueIndex("investors_contact_idx").on(t.contactId) }));
 
 export const BUYER_TEMPS = ["hot", "warm", "nurture"] as const;
 export const buyers = sqliteTable("buyers", {

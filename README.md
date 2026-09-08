@@ -1,7 +1,7 @@
 # RealtorPro — Private Command Center
 
 A local, single-user real-estate CRM for MacBooks and Windows. Contacts, buyer criteria,
-seller pipeline, listings, transactions, tasks, local appointments, notes,
+seller pipeline, investor profiles, listings, transactions, tasks, local appointments, notes,
 income tracking and buyer matching share a SQLite database.
 
 This release hardens the `claude/command-center` branch. It is **not a public
@@ -12,6 +12,9 @@ by setup; no sample data is loaded automatically.
 Installing on a MacBook? See [Mac setup](docs/MAC_SETUP.md) for double-click
 launchers, Keychain and the native vault chooser. See [Project graph](docs/graphify/README.md)
 for the generated Graphify architecture map.
+
+See [Investors](docs/INVESTORS.md) for buying criteria, self-reported capital,
+shared follow-ups, and approved imports from Claude or Obsidian.
 
 ## Start locally
 

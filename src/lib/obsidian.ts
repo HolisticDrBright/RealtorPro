@@ -99,7 +99,7 @@ export const obsidianUri = (vaultName: string, relPath: string) => `obsidian://o
 export const isDailyNoteFor = (relPath: string, ymd: string) => relPath.replace(/\\/g, "/").split("/").pop()?.includes(ymd) ?? false;
 
 /** Importable record types recognised in frontmatter `type:`. */
-export const RECORD_TYPES = ["contact", "buyer", "seller", "property", "listing", "transaction", "task", "opportunity"] as const;
+export const RECORD_TYPES = ["contact", "buyer", "seller", "investor", "property", "listing", "transaction", "task", "opportunity"] as const;
 export type RecordType = (typeof RECORD_TYPES)[number];
 export function recordTypeOf(fm: Record<string, unknown>): RecordType | null {
   const t = typeof fm.type === "string" ? fm.type.toLowerCase().trim() : null;

@@ -5,6 +5,7 @@ import * as s from "@/db/schema";
 import { addDays, nextRecurrence, ymd } from "@/lib/dates";
 import { estCommission } from "@/lib/calc";
 import type { EntityName } from "@/lib/registry";
+import { validateInvestorBudget } from "@/lib/investors";
 
 /**
  * Side effects that keep the model coherent: a completed call updates the
@@ -39,7 +40,9 @@ export function defaultMilestones(transactionId: string, escrowOpenedAt: string,
 }
 
 export function afterCreate(entity: EntityName, row: Row) {
+  if (entity === "investors") validateInvestorBudget(row);
   switch (entity) {
+    case "investors": db.update(s.contacts).set({ type: "investor", updatedAt: now() }).where(and(eq(s.contacts.id, row.contactId as string), eq(s.contacts.type, "lead"))).run(); break;
     case "buyers": db.update(s.contacts).set({ type: "buyer", updatedAt: now() }).where(and(eq(s.contacts.id, row.contactId as string), eq(s.contacts.type, "lead"))).run(); break;
     case "sellers": db.update(s.contacts).set({ type: "seller", updatedAt: now() }).where(and(eq(s.contacts.id, row.contactId as string), eq(s.contacts.type, "lead"))).run(); break;
     case "notes": if (row.contactId) logActivity({ contactId: row.contactId as string, type: "note", summary: String(row.body).slice(0, 140), refType: "note", refId: row.id as string }); break;
@@ -57,6 +60,7 @@ export function afterCreate(entity: EntityName, row: Row) {
 }
 
 export function afterUpdate(entity: EntityName, before: Row, after: Row) {
+  if (entity === "investors") validateInvestorBudget(after);
   switch (entity) {
     case "tasks":
       if (!before.completedAt && after.completedAt) {

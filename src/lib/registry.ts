@@ -1,5 +1,6 @@
 import { z } from "zod";
 import * as s from "@/db/schema";
+import { investorProfileSchema } from "./investors";
 
 /**
  * Entity registry: one place that maps an API name to its table, validation
@@ -15,6 +16,7 @@ const list = z.union([z.array(z.string()), z.string().transform((v) => v.split(/
 const en = <T extends readonly [string, ...string[]]>(vals: T) => z.enum(vals).optional();
 
 export const schemas = {
+  investors: investorProfileSchema.extend({ contactId: z.string().trim().min(1, "Choose a contact") }),
   settings: z.object({ agentName: z.string().trim().min(1).max(200).optional(), title: str, brokerage: str, annualGoal: z.coerce.number().min(0).max(1e10).optional(), defaultCommissionPct: z.coerce.number().min(0).max(100).optional(), defaultSplitPct: z.coerce.number().min(0).max(100).optional() }),
   contacts: z.object({
     firstName: z.string().trim().min(1, "First name is required"), lastName: z.string().trim().optional().default(""), photoUrl: str, phone: str, email: z.string().trim().email().nullable().optional().or(z.literal("")), spouse: str, birthday: str, homeAddress: str,
@@ -48,18 +50,21 @@ export type EntityName = keyof typeof schemas;
 export const ENTITY_NAMES = Object.keys(schemas) as EntityName[];
 
 export const tables = {
+  investors: s.investors,
   settings: s.settings, contacts: s.contacts, buyers: s.buyers, sellers: s.sellers, properties: s.properties, listings: s.listings, transactions: s.transactions, milestones: s.milestones,
   offers: s.offers, tasks: s.tasks, calls: s.calls, appointments: s.appointments, notes: s.notes, activities: s.activities, opportunities: s.opportunities, touchpoints: s.touchpoints, notifications: s.notifications,
 } as const;
 
 /** Columns searched by `?q=` on list endpoints. */
 export const searchable: Record<EntityName, string[]> = {
+  investors: ["strategy", "targetAreas", "propertyTypes", "financingType", "timeline", "notes"],
   settings: [], contacts: ["firstName", "lastName", "phone", "email", "notes", "homeAddress", "spouse"], buyers: ["notes", "timeline"], sellers: ["propertyAddress", "city", "notes", "motivation"], properties: ["address", "city", "zip", "notes"],
   listings: ["nextAction", "notes"], transactions: ["notes"], milestones: ["name"], offers: ["notes", "financing"], tasks: ["title", "notes"], calls: ["reason", "notes", "outcome"], appointments: ["title", "location", "notes"], notes: ["body"],
   activities: ["summary"], opportunities: ["address", "area", "sourceAgent", "notes"], touchpoints: ["notes"], notifications: ["title", "body"],
 };
 
 export const defaultSort: Record<EntityName, { column: string; dir: "asc" | "desc" }> = {
+  investors: { column: "createdAt", dir: "desc" },
   settings: { column: "createdAt", dir: "asc" }, contacts: { column: "lastName", dir: "asc" }, buyers: { column: "createdAt", dir: "desc" }, sellers: { column: "createdAt", dir: "desc" }, properties: { column: "address", dir: "asc" },
   listings: { column: "createdAt", dir: "desc" }, transactions: { column: "closingDate", dir: "desc" }, milestones: { column: "sortOrder", dir: "asc" }, offers: { column: "createdAt", dir: "desc" }, tasks: { column: "dueDate", dir: "asc" },
   calls: { column: "scheduledTime", dir: "asc" }, appointments: { column: "startsAt", dir: "asc" }, notes: { column: "createdAt", dir: "desc" }, activities: { column: "occurredAt", dir: "desc" }, opportunities: { column: "createdAt", dir: "desc" },

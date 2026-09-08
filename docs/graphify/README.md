@@ -1,5 +1,9 @@
 # RealtorPro Graphify map
 
+This is the Mac-first release snapshot, before the Investors section was added.
+See [Investors](../INVESTORS.md) for the new profile/import behavior; regenerate
+the graph below to include its new files and relationships.
+
 Refreshed 2026-09-07 with the Mac-first release changes: Keychain, native folder
 chooser, desktop launcher and connection regression tests.
 

@@ -9,7 +9,7 @@ import { Avatar, Badge, Card, Empty, Loading, PageHeader, Segmented, Table, type
 import { RowMenu, useCrud } from "@/components/app/crud";
 
 interface Contact { id: string; firstName: string; lastName: string; photoUrl: string | null; phone: string | null; email: string | null; type: string; leadSource: string | null; tags: string[]; priceMin: number | null; priceMax: number | null; preferredAreas: string[]; stage: string; lastContactAt: string | null; nextFollowUpAt: string | null; homeAddress: string | null; archived: boolean }
-const TYPES = ["all", "buyer", "seller", "past_client", "lead", "agent", "vendor", "sphere"] as const;
+const TYPES = ["all", "buyer", "seller", "investor", "past_client", "lead", "agent", "vendor", "sphere"] as const;
 
 export default function ContactsPage() {
   const qf = useQueryParam("filter");

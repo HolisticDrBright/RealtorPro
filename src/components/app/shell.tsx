@@ -21,6 +21,7 @@ export const NAV: { href: string; label: string; icon: ReactNode; key?: string }
   { href: "/calls", label: "Calls", icon: <I d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012.1 4.2 2 2 0 014.1 2h3a2 2 0 012 1.7c.1.9.3 1.8.6 2.7a2 2 0 01-.5 2.1L8 9.7a16 16 0 006 6l1.2-1.2a2 2 0 012.1-.5c.9.3 1.8.5 2.7.6a2 2 0 011.7 2z" />, key: "3" },
   { href: "/buyers", label: "Buyers", icon: <I d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8" />, key: "4" },
   { href: "/sellers", label: "Sellers", icon: <I d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z" />, key: "5" },
+  { href: "/investors", label: "Investors", icon: <I d="M4 20V12h4v8M10 20V8h4v12M16 20V4h4v16M2 20h20" /> },
   { href: "/listings", label: "Listings", icon: <I d="M4 4h16v16H4zM4 10h16M10 10v10" />, key: "6" },
   { href: "/pipeline", label: "Pipeline", icon: <I d="M4 6h4v12H4zM10 6h4v8h-4zM16 6h4v5h-4z" />, key: "7" },
   { href: "/transactions", label: "Transactions", icon: <I d="M3 6h18M3 12h18M3 18h12" />, key: "8" },
@@ -36,7 +37,7 @@ const MORE = [
 ];
 function I({ d }: { d: string }) { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>; }
 
-const QUICK = ["tasks", "calls", "buyers", "sellers", "contacts", "listings", "transactions", "notes"];
+const QUICK = ["tasks", "calls", "buyers", "sellers", "investors", "contacts", "listings", "transactions", "notes"];
 
 /** Global quick-add controller (open from anywhere). */
 type QuickAddFn = (entity: string, initial?: Record<string, unknown>) => void;

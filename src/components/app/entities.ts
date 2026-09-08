@@ -1,9 +1,27 @@
 import type { Field } from "@/components/ui/form";
+import { INVESTOR_STRATEGIES, INVESTOR_STATUSES } from "@/lib/investors";
 
 /** Field configs for every add/edit form. Options mirror the constants in the schema. */
 const P = ["critical", "high", "medium", "low"] as const;
 
 export const FIELDS: Record<string, Field[]> = {
+  investors: [
+    { name: "contactId", label: "Contact", type: "contact", required: true, help: "One investor profile per contact. Use New investor contact if they are not in Contacts yet." },
+    { name: "strategy", label: "Primary strategy", type: "select", options: INVESTOR_STRATEGIES, half: true, default: "other" },
+    { name: "status", label: "Status", type: "select", options: INVESTOR_STATUSES, half: true, default: "active" },
+    { name: "targetAreas", label: "Target markets", type: "list", placeholder: "Cities or neighborhoods, separated by commas" },
+    { name: "propertyTypes", label: "Property types", type: "list", placeholder: "Duplex, Multifamily, Retail" },
+    { name: "budgetMin", label: "Purchase budget from", type: "money", half: true },
+    { name: "budgetMax", label: "Purchase budget to", type: "money", half: true },
+    { name: "availableCapital", label: "Available capital (self-reported)", type: "money", help: "Not verified funds. Leave blank if unknown; purchase budget is not available cash." },
+    { name: "financingType", label: "Financing", half: true, placeholder: "Cash, conventional, DSCR, hard money…" },
+    { name: "timeline", label: "Purchase timeline", half: true },
+    { name: "targetCapRate", label: "Target cap rate (%)", type: "percent", half: true, help: "Investor's stated target, not a calculated return." },
+    { name: "targetCashOnCash", label: "Target cash-on-cash (%)", type: "percent", half: true },
+    { name: "mustHaves", label: "Must-haves", type: "list" },
+    { name: "dealBreakers", label: "Deal breakers", type: "list" },
+    { name: "notes", label: "Investor notes", type: "textarea", help: "Track additional strategies, preferences and diligence needs. Follow-ups live on the shared contact." },
+  ],
   tasks: [
     { name: "title", label: "Task", required: true, placeholder: "Follow up with James and review offer" },
     { name: "priority", label: "Priority", type: "select", options: P, half: true, default: "medium" },
@@ -29,7 +47,7 @@ export const FIELDS: Record<string, Field[]> = {
     { name: "lastName", label: "Last name", half: true },
     { name: "phone", label: "Phone", half: true, placeholder: "(949) 555-0100" },
     { name: "email", label: "Email", half: true },
-    { name: "type", label: "Contact type", type: "select", options: ["buyer", "seller", "past_client", "lead", "agent", "vendor", "sphere"], half: true, default: "lead" },
+    { name: "type", label: "Contact type", type: "select", options: ["buyer", "seller", "investor", "past_client", "lead", "agent", "vendor", "sphere"], half: true, default: "lead" },
     { name: "leadSource", label: "Lead source", type: "select", options: ["referral", "past_client", "instagram", "open_house", "cold_outreach", "agent_referral", "website", "zillow", "off_market", "sphere", "other"], half: true, default: "referral" },
     { name: "spouse", label: "Spouse / partner", half: true },
     { name: "birthday", label: "Birthday", type: "date", half: true },
@@ -182,4 +200,4 @@ export const FIELDS: Record<string, Field[]> = {
   ],
 };
 
-export const ENTITY_LABEL: Record<string, string> = { tasks: "Task", calls: "Call", contacts: "Contact", buyers: "Buyer", sellers: "Seller", properties: "Property", listings: "Listing", transactions: "Transaction", offers: "Offer", appointments: "Appointment", notes: "Note", opportunities: "Opportunity", touchpoints: "Touchpoint", milestones: "Milestone" };
+export const ENTITY_LABEL: Record<string, string> = { investors: "Investor", tasks: "Task", calls: "Call", contacts: "Contact", buyers: "Buyer", sellers: "Seller", properties: "Property", listings: "Listing", transactions: "Transaction", offers: "Offer", appointments: "Appointment", notes: "Note", opportunities: "Opportunity", touchpoints: "Touchpoint", milestones: "Milestone" };

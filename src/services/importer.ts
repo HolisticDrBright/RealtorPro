@@ -6,6 +6,7 @@ import * as s from "@/db/schema";
 import { afterCreate, afterUpdate, logActivity } from "./hooks";
 import { parseMoney } from "@/lib/obsidian";
 import { AppError } from "@/lib/errors";
+import { investorProfileSchema } from "@/lib/investors";
 
 /**
  * One import pipeline for every source (Obsidian frontmatter, Claude
@@ -26,6 +27,7 @@ export const ImportBundle = z.object({
     name: z.string().min(1), phone: str, email: str, type: z.enum(s.CONTACT_TYPES).nullable().optional(), leadSource: z.enum(s.LEAD_SOURCES).nullable().optional(), spouse: str, birthday: str, homeAddress: str,
     priceMin: money, priceMax: money, preferredAreas: list, tags: list, stage: z.enum(s.PIPELINE_STAGES).nullable().optional(), nextAction: str, nextFollowUpAt: str, notes: str,
     // Optional inline profiles
+    investor: investorProfileSchema.nullable().optional(),
     buyer: z.object({ temperature: z.enum(s.BUYER_TEMPS).nullable().optional(), priceMin: money, priceMax: money, targetAreas: list, minBeds: num, minBaths: num, minSqft: num, propertyType: str, mustHaves: list, dealBreakers: list, financingType: str, preApprovalAmount: money, timeline: str, notes: str }).nullable().optional(),
     seller: z.object({ propertyAddress: str, city: str, estimatedValue: money, expectedListPrice: money, timeline: str, motivation: str, stage: z.enum(s.SELLER_STAGES).nullable().optional(), probability: num, notes: str }).nullable().optional(),
   })).default([]),
@@ -103,12 +105,23 @@ function executeImport(bundle: ImportBundleT, opts: { source?: string }): Import
   };
 
   for (const c of bundle.contacts) {
-    const { buyer, seller, name, ...fields } = c;
+    const { buyer, seller, investor, name, ...fields } = c;
     const existing = findContact(name, c.email, c.phone);
     const patch = clean({ ...fields, ...(existing ? {} : splitName(name)) });
     let contact = existing;
     if (existing) { if (!dry) { db.update(s.contacts).set({ ...patch, updatedAt: now() } as never).where(eq(s.contacts.id, existing.id)).run(); afterUpdate("contacts", existing as never, { ...existing, ...patch } as never); } bump("updated", "contacts"); }
-    else { if (!dry) { contact = db.insert(s.contacts).values({ ...splitName(name), type: c.type ?? (buyer ? "buyer" : seller ? "seller" : "lead"), leadSource: c.leadSource ?? "other", ...patch } as never).returning().get(); logActivity({ contactId: contact.id, type: "system", summary: `Imported from ${src}` }); } bump("created", "contacts"); }
+    else { if (!dry) { contact = db.insert(s.contacts).values({ ...splitName(name), type: c.type ?? (buyer ? "buyer" : seller ? "seller" : investor ? "investor" : "lead"), leadSource: c.leadSource ?? "other", ...patch } as never).returning().get(); logActivity({ contactId: contact.id, type: "system", summary: `Imported from ${src}` }); } bump("created", "contacts"); }
+    if (investor && contact && !dry) {
+      const existingProfile = db.select().from(s.investors).where(eq(s.investors.contactId, contact.id)).get();
+      const values = clean(investor);
+      if (existingProfile) {
+        const row = db.update(s.investors).set({ ...values, updatedAt: now() }).where(eq(s.investors.id, existingProfile.id)).returning().get()!;
+        afterUpdate("investors", existingProfile, row); bump("updated", "investors");
+      } else {
+        const row = db.insert(s.investors).values({ contactId: contact.id, ...values }).returning().get();
+        afterCreate("investors", row); bump("created", "investors");
+      }
+    } else if (investor && dry) bump(db.select().from(s.investors).where(eq(s.investors.contactId, contact?.id ?? "")).get() ? "updated" : "created", "investors");
     if (buyer && contact && !dry) {
       const b = db.select().from(s.buyers).where(eq(s.buyers.contactId, contact.id)).get();
       const vals = clean({ ...buyer, temperature: buyer.temperature ?? undefined });
