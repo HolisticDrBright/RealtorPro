@@ -245,6 +245,57 @@ curl -X POST http://localhost:3000/api/exports -H 'content-type: application/jso
 
 ---
 
+## 7. Transaction checklist
+
+California seller/buyer checklist (tasks + required documents, per phase, with
+computed due dates). **Tracks and reminds only** — never generates, fills or
+signs a form, never sends anything. FUB pushes create a *local draft task* that
+the agent approves on the Follow Up Boss screen. Every write is audited
+(`checklist.instantiated`, `checklist.item_updated`, `checklist.pushed_to_fub`,
+`checklist.document_attached`, `checklist.exported`).
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /api/transactions` | Active + pending transactions with checklist progress (`?all=1` includes closed/canceled). |
+| `POST /api/transactions` | Create a transaction (`side`, `address`, `contactId`, `propertyId`, dates, `flags`, optional `templateKey`); auto-instantiates the default checklist. |
+| `GET /api/transactions/:id` | Detail with checklist: `{ transaction, template, items, summary }`. |
+| `PATCH /api/transactions/:id` | Dates / flags / stage / status. A date change recomputes due dates (overrides and done items untouched); a flags change adds newly applicable items and marks retired pending items `na`. |
+| `POST /api/transactions/:id/checklist` | `{ templateKey?, reset? }` — instantiate, or rebuild with `reset: true`. 409 if a checklist exists and `reset` is false. |
+| `POST /api/transactions/:id/export` | `{ format: "pdf" \| "xlsx", approvedBy }` — export the checklist; records an approval + export record. |
+| `PATCH /api/checklist/items/:id` | `{ status?, dueOverride?, notes?, sourceDocumentId? }`. `status: "done"` stamps `completedAt`; `sourceDocumentId` links a received document and marks the item done. |
+| `POST /api/checklist/items/:id/attach` | `multipart/form-data` file upload → immutable `source_documents` row (`kind: "disclosure"`) linked to the item. |
+| `POST /api/checklist/items/:id/push-fub` | Creates the draft `tasks` row (`origin: "local"`, `syncedToFub: false`); returns `{ task }`. |
+| `GET /api/checklist/templates` | List templates (read-only). |
+| `GET /api/checklist/due?from=&to=` | Open items with an effective due date in range across active transactions (Today screen). Defaults to today → today + 7. |
+
+Zod shapes: dates `YYYY-MM-DD`; `status` ∈ `pending | done | na | waived`;
+`flags` is a `Record<Condition, boolean>` validated against the condition union
+(`pre1978, hoa, fhsz, pre2010_fhsz, tenant, financed, trust_or_probate,
+seller_financing, buyer_must_sell, local_pos, short_sale, exchange_1031`).
+
+```bash
+# create a financed buyer transaction and read its checklist
+curl -X POST http://localhost:3000/api/transactions -H 'content-type: application/json' -d '{
+  "side": "buyer", "address": "4823 SE Reedway St", "contactId": "c1",
+  "acceptanceAt": "2026-11-06", "coeAt": "2026-12-15", "flags": { "financed": true, "pre1978": true }
+}'
+curl http://localhost:3000/api/transactions/TX_ID
+# move COE — VP (COE − 5) recomputes; overrides and done items stay
+curl -X PATCH http://localhost:3000/api/transactions/TX_ID -H 'content-type: application/json' -d '{ "coeAt": "2026-12-22" }'
+# queue a draft FUB task for an item
+curl -X POST http://localhost:3000/api/checklist/items/ITEM_ID/push-fub
+```
+
+Due rules (RPA defaults; overridable per item): initial deposit acceptance + 3
+business days · seller disclosures acceptance + 7 · loan application
+acceptance + 3 · investigation/appraisal CR acceptance + 17 · loan CR
+acceptance + 21 · prelim/HOA review acceptance + 17 · TDS/NHD rescission
+disclosure delivery + 5 · VP COE − 5 · DCE eligible COE − 3 · Closing
+Disclosure COE − 3 business days · BRBC expiration agreement + 90 · COE + 0.
+Business days skip weekends only (no holiday calendar).
+
+---
+
 ## Auditing
 
 Every import, generated draft, approval, export, and FUB write appends an entry

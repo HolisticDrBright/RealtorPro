@@ -105,6 +105,42 @@ export async function buildRentRollWorkbook(input: RentRollWorkbookInput): Promi
   return (await wb.xlsx.writeBuffer()) as unknown as Buffer;
 }
 
+export interface ChecklistWorkbookInput {
+  address: string;
+  side: string;
+  templateName: string;
+  dates: { label: string; value: string | null }[];
+  flags: string[];
+  items: { phase: string; code: string; kind: string; title: string; owner: string; formCode: string | null; status: string; due: string | null; override: string | null; authority: string | null; notes: string | null; completedAt: string | null }[];
+}
+
+/** Transaction checklist workbook: one tab of items, one of key dates / flags / notes. Tracking only — no forms are generated. */
+export async function buildChecklistWorkbook(input: ChecklistWorkbookInput): Promise<Buffer> {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "AgentOS — Transaction Checklist";
+  wb.created = new Date(0);
+
+  const ws = wb.addWorksheet("Checklist");
+  ws.addRow(["Phase", "Code", "Kind", "Item", "Owner", "C.A.R. form", "Status", "Due", "Override", "Completed", "Authority", "Notes"]);
+  for (const i of input.items) ws.addRow([i.phase, i.code, i.kind, i.title, i.owner, i.formCode ?? "", i.status, i.due ?? "", i.override ?? "", i.completedAt ? i.completedAt.slice(0, 10) : "", i.authority ?? "", i.notes ?? ""]);
+  autoWidth(ws);
+
+  const meta = wb.addWorksheet("Key dates & conditions");
+  meta.addRow(["Property", input.address]);
+  meta.addRow(["Side", input.side]);
+  meta.addRow(["Template", input.templateName]);
+  meta.addRow([]);
+  meta.addRow(["Key date", "Value"]);
+  for (const d of input.dates) meta.addRow([d.label, d.value ?? "—"]);
+  meta.addRow([]);
+  meta.addRow(["Conditions on", input.flags.join(", ") || "none"]);
+  meta.addRow([]);
+  meta.addRow(["Note", "This checklist tracks and reminds only. It does not generate, fill or sign any form and is not legal advice. Verify every deadline against the executed contract. Business-day math skips weekends only (no holiday calendar)."]);
+  autoWidth(meta);
+
+  return (await wb.xlsx.writeBuffer()) as unknown as Buffer;
+}
+
 export interface CompWorkbookInput {
   name: string;
   comps: (NormalizedComp & { score?: number | null })[];
