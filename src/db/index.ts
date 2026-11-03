@@ -5,9 +5,10 @@ import fs from "node:fs";
 import * as baseSchema from "./schema";
 import * as moduleSchema from "./schema.modules";
 import * as dashboardSchema from "./schema.dashboard";
+import * as checklistSchema from "./schema.checklists";
 import { DB_FILE, WORKSPACE_SUBDIRS } from "@/lib/paths";
 
-const schema = { ...baseSchema, ...moduleSchema, ...dashboardSchema };
+const schema = { ...baseSchema, ...moduleSchema, ...dashboardSchema, ...checklistSchema };
 
 /**
  * Single shared SQLite connection for the app (server-only).

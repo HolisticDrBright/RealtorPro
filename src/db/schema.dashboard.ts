@@ -1,4 +1,5 @@
 import { sqliteTable, text, integer, real, index } from "drizzle-orm/sqlite-core";
+import type { Condition } from "../data/checklist-templates";
 
 /**
  * Dashboard schema: the daily game plan (todos / priority tasks / calls),
@@ -10,6 +11,9 @@ import { sqliteTable, text, integer, real, index } from "drizzle-orm/sqlite-core
 const randomUUID = () => globalThis.crypto.randomUUID();
 const id = () => text("id").primaryKey().$defaultFn(() => randomUUID());
 const createdAt = () => text("created_at").notNull().$defaultFn(() => new Date().toISOString());
+function json<T>(name: string) {
+  return text(name, { mode: "json" }).$type<T>();
+}
 
 export const todos = sqliteTable(
   "todos",
@@ -68,6 +72,14 @@ export const transactions = sqliteTable(
     gci: real("gci"), // gross commission income for the agent, if known
     fubDealId: text("fub_deal_id"),
     notes: text("notes"),
+    // Transaction checklist anchors (YYYY-MM-DD) and the template in use.
+    listingSignedAt: text("listing_signed_at"), // listing agreement, or buyer representation agreement on the buyer side
+    acceptanceAt: text("acceptance_at"),
+    coeAt: text("coe_at"),
+    disclosureDeliveredAt: text("disclosure_delivered_at"),
+    checklistTemplateId: text("checklist_template_id"),
+    // Conditions that switch conditional checklist items on. All default false.
+    flags: json<Partial<Record<Condition, boolean>>>("flags").default({}),
     createdAt: createdAt(),
   },
   (t) => ({ statusIdx: index("tx_status_idx").on(t.status), closedIdx: index("tx_closed_idx").on(t.closedAt) }),
