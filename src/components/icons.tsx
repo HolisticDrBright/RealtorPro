@@ -22,6 +22,13 @@ function Base({ size = 15, children, ...props }: IconProps & { children: React.R
   );
 }
 
+export const IconChecklist = (p: IconProps) => (
+  <Base {...p}>
+    <rect x="4" y="3" width="16" height="18" />
+    <path d="M8 8h8M8 12h8M8 16h5" />
+  </Base>
+);
+
 export const IconToday = (p: IconProps) => (
   <Base {...p}>
     <rect x="3" y="4" width="18" height="18" rx="0" />

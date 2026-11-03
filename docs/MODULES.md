@@ -145,6 +145,56 @@ and FUB write is audited.
 
 ---
 
+## Transaction Checklist
+
+A California seller/buyer transaction checklist — tasks **and** required
+documents, per phase, with computed due dates — attached to each row of the
+`transactions` table. Content comes from one typed constant
+(`src/data/checklist-templates.ts`, mirrored in
+`docs/CA_TRANSACTION_CHECKLIST.md`) seeded into `checklist_templates` so a
+brokerage can later clone and edit a copy.
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET/POST /api/transactions` | List active transactions with progress / create one (auto-instantiates the default checklist for its side). |
+| `GET/PATCH /api/transactions/:id` | Detail `{ items, summary }` / edit dates, flags, stage. Dates → `recomputeDueDates`; flags → `updateFlags`. |
+| `POST /api/transactions/:id/checklist` | Instantiate or `reset: true` rebuild (409 guard). |
+| `POST /api/transactions/:id/export` | PDF or XLSX of the checklist — records an approval + export record. |
+| `PATCH /api/checklist/items/:id` | status · dueOverride · notes · sourceDocumentId. |
+| `POST /api/checklist/items/:id/attach` | Upload a received document → immutable `source_documents` row (`kind: disclosure`), item marked done. |
+| `POST /api/checklist/items/:id/push-fub` | Create a **local draft task** (`origin: local`, `syncedToFub: false`). |
+| `GET /api/checklist/templates` · `GET /api/checklist/due` | Templates (read-only) · items due in a date range (Today screen). |
+
+**Phases.** Seller: pre-listing → disclosure packet → active/offers/acceptance
+→ escrow through closing. Buyer: representation → search/offer/acceptance →
+escrow/due diligence/contingency removal → closing. Conditional items switch on
+by transaction flags (`pre1978` → FLD, `hoa` → HOA1/HOA2, `fhsz`,
+`pre2010_fhsz`, `tenant`, `financed`, `trust_or_probate`, `seller_financing`,
+`buyer_must_sell`, `local_pos`, `short_sale`, `exchange_1031`).
+
+**Dates** (`src/lib/checklist.ts`, pure, unit-tested): anchors are listing /
+representation agreement signed, acceptance, COE and disclosure delivery. Rules
+are the RPA defaults (deposit acceptance + 3 business days, disclosures
+acceptance + 7, investigation/appraisal CR + 17, loan CR + 21, VP COE − 5,
+Closing Disclosure COE − 3 business days, BRBC expiry + 90 …). Every date is
+overridable per item; recompute never touches an override or a done item.
+Business days skip weekends only — there is no holiday calendar.
+
+**Guardrails.** The checklist tracks and reminds only: it never generates,
+fills or signs a legal form and never auto-sends anything. FUB pushes go
+through the existing draft-task approval path (the FUB adapter is never called
+from this module). Item titles carry no property or client descriptions. Every
+mutation writes an audit row (`checklist.instantiated`, `checklist.item_updated`,
+`checklist.pushed_to_fub`, `checklist.document_attached`, `checklist.exported`).
+
+**UI.** *Transactions* screen (list → detail with key-date inputs, condition
+toggles, phase tabs, task/document rows with status, override, notes, Attach and
+Push to FUB, export + reset). Dashboard "Active transactions" cards show
+done/total + next due and deep-link into the screen; *Today* shows a
+"Transaction deadlines" block for the next 7 days.
+
+---
+
 ## Integration
 
 Rent Roll Studio, Comp Lab, and Signal Scout records link to Property, Contact,

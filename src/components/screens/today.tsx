@@ -2,6 +2,34 @@
 
 import { DATA } from "@/data/mock-data";
 import { useApp, type Screen } from "../app-state";
+import { useGet } from "../modules/shared";
+
+interface DueItem { id: string; code: string; title: string; kind: string; owner: string; due: string | null; transaction: { id: string; address: string; side: string } }
+
+/** Checklist items due in the next 7 days across active transactions (GET /api/checklist/due). */
+function TransactionDeadlines() {
+  const app = useApp();
+  const { data, loading, error } = useGet<{ from: string; to: string; items: DueItem[] }>("/api/checklist/due");
+  const today = data?.from ?? "";
+  return (
+    <div>
+      <h6 style={{ margin: 0, borderBottom: "2px solid var(--color-divider)", paddingBottom: 8 }}>Transaction deadlines · next 7 days</h6>
+      {loading && <div className="text-muted" style={{ fontSize: 13, padding: "10px 0" }}>Loading…</div>}
+      {error && <div className="text-muted" style={{ fontSize: 13, padding: "10px 0" }}>Couldn’t load deadlines.</div>}
+      {data && data.items.length === 0 && <div className="text-muted" style={{ fontSize: 13.5, padding: "10px 0" }}>Nothing due through {data.to}.</div>}
+      {data?.items.map((i) => (
+        <div key={i.id} style={{ display: "flex", gap: 12, padding: "10px 0", borderBottom: "1px solid var(--color-divider)", alignItems: "flex-start" }}>
+          <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 13, width: 84, flex: "none", paddingTop: 2, color: i.due === today ? "var(--color-accent)" : "inherit" }}>{i.due === today ? "Today" : i.due}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 600, fontSize: 14.5 }}>{i.title}</div>
+            <div className="text-muted" style={{ fontSize: 13 }}>{i.transaction.address} · {i.code} · {i.owner}</div>
+          </div>
+          <button className="btn btn-ghost" style={{ fontSize: 14, flex: "none" }} onClick={() => app.openTransaction(i.transaction.id)} aria-label={`Open ${i.transaction.address} checklist`}>Open</button>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function TodayScreen() {
   const app = useApp();
@@ -71,6 +99,7 @@ export function TodayScreen() {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          <TransactionDeadlines />
           <div>
             <h6 style={{ margin: 0, borderBottom: "2px solid var(--color-divider)", paddingBottom: 8 }}>Today’s appointments</h6>
             {t.appointments.map((ap) => (

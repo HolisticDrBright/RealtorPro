@@ -12,7 +12,11 @@ import { DB_FILE, WORKSPACE_SUBDIRS } from "../lib/paths";
 import * as schema from "./schema";
 import * as m from "./schema.modules";
 import * as d from "./schema.dashboard";
+import * as ck from "./schema.checklists";
+import { eq } from "drizzle-orm";
 import { DATA, OM } from "../data/mock-data";
+import { TEMPLATES, templateForSide, type Side } from "../data/checklist-templates";
+import { buildItems } from "../lib/checklist";
 import { parseCeiling, parseMoney } from "../lib/listing-parse";
 
 for (const dir of WORKSPACE_SUBDIRS) fs.mkdirSync(dir, { recursive: true });
@@ -87,6 +91,8 @@ function clear() {
     "farm_records",
     "todos",
     "calendar_events",
+    "checklist_items",
+    "checklist_templates",
     "transactions",
   ];
   for (const t of tables) {
@@ -605,6 +611,7 @@ const ymd = (dt: Date) => dt.toISOString().slice(0, 10);
 const at = (h: number, mnt = 0) => { const x = new Date(today); x.setHours(h, mnt, 0, 0); return x.toISOString(); };
 const year = today.getFullYear();
 const TODAY = ymd(today);
+const daysFromToday = (n: number) => ymd(new Date(today.getTime() + n * 86400_000));
 
 db.insert(d.todos).values([
   { id: "td1", title: "Reply to Ruiz inspection addendum (seller countered $4,500 credit)", kind: "priority", dueDate: TODAY, contactId: "c3" },
@@ -634,11 +641,32 @@ db.insert(d.transactions).values([
   { id: "tx4", side: "buyer", address: "8317 N Fenwick Ave", price: 489000, status: "closed", closedAt: `${year}-04-11`, commissionPct: 2.5, gci: 12225 },
   { id: "tx5", side: "buyer", address: "3920 SE Taylor St", price: 735000, status: "closed", closedAt: `${year}-05-30`, commissionPct: 2.5 },
   { id: "tx6", side: "listing", address: "6122 SE Yamhill St", price: 699000, status: "closed", closedAt: `${year}-06-20`, commissionPct: 2.5, gci: 17475 },
-  { id: "tx7", side: "buyer", address: "7215 N Curtis Ave", price: 512000, status: "pending", stage: "Inspection period", contactId: "c3", commissionPct: 2.5 },
+  { id: "tx7", side: "buyer", address: "7215 N Curtis Ave", price: 512000, status: "pending", stage: "Inspection period", contactId: "c3", commissionPct: 2.5, listingSignedAt: daysFromToday(-40), acceptanceAt: daysFromToday(-9), coeAt: daysFromToday(21), disclosureDeliveredAt: daysFromToday(-3), flags: { financed: true, pre1978: true } },
   { id: "tx8", side: "buyer", address: "1150 NW Quimby St #804", price: 436000, status: "pending", stage: "Appraisal", contactId: "c2", commissionPct: 2.5 },
-  { id: "tx9", side: "listing", address: "3117 NE Alameda St", price: 1150000, status: "active", stage: "Coming soon — photos Thu", contactId: "c4", propertyId: "l1", commissionPct: 2.5 },
+  { id: "tx9", side: "listing", address: "3117 NE Alameda St", price: 1150000, status: "active", stage: "Coming soon — photos Thu", contactId: "c4", propertyId: "l1", commissionPct: 2.5, listingSignedAt: daysFromToday(-6), flags: { pre1978: true, local_pos: true } },
   { id: "tx10", side: "buyer", address: "Mehta — active search", price: 700000, status: "active", stage: "Touring", contactId: "c1", commissionPct: 2.5 },
 ]).run();
+
+// Transaction checklists: seed the templates, then instantiate one listing and
+// one buyer checklist so the Transactions screen is populated. Pure builder —
+// the same logic the service uses (src/lib/checklist.ts).
+for (const t of TEMPLATES) {
+  db.insert(ck.checklistTemplates).values({ id: `tpl-${t.key}`, key: t.key, side: t.side, name: t.name, version: t.version, phases: t.phases, isDefault: true }).run();
+}
+let checklistRows = 0;
+for (const txId of ["tx9", "tx7"]) {
+  const tx = db.select().from(d.transactions).where(eq(d.transactions.id, txId)).get()!;
+  const tpl = templateForSide(tx.side as Side);
+  const built = buildItems(tpl, tx.flags ?? {}, { listing_signed: tx.listingSignedAt, acceptance: tx.acceptanceAt, coe: tx.coeAt, disclosure_delivery: tx.disclosureDeliveredAt });
+  for (const [i, b] of built.entries()) {
+    // Mark the first few prelisting / representation items done so progress is visible.
+    const done = b.phaseOrder === 1 && i < 6;
+    db.insert(ck.checklistItems).values({ ...b, transactionId: txId, templateId: `tpl-${tpl.key}`, status: done ? "done" : "pending", completedAt: done ? at(9, 0) : null }).run();
+  }
+  db.update(d.transactions).set({ checklistTemplateId: `tpl-${tpl.key}` }).where(eq(d.transactions.id, txId)).run();
+  checklistRows += built.length;
+}
+console.log("✔ Checklists seeded:", { templates: TEMPLATES.length, items: checklistRows });
 
 // Off-market properties (agent-entered / owner-authorized, fictional).
 db.insert(schema.properties).values([

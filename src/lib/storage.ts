@@ -46,6 +46,8 @@ const ALLOWED_MIME: Record<string, string[]> = {
   image: ["image/jpeg", "image/png", "image/webp", "image/heic", "image/tiff"],
   floorplan: ["image/jpeg", "image/png", "image/webp", "application/pdf"],
   video: ["video/mp4", "video/quicktime", "video/webm"],
+  // Received transaction documents (signed disclosures, reports) attached to a checklist item.
+  disclosure: ["application/pdf", "image/jpeg", "image/png", "image/webp", "image/heic", "image/tiff"],
 };
 
 export function assertAllowedMime(kind: keyof typeof ALLOWED_MIME, mime: string) {

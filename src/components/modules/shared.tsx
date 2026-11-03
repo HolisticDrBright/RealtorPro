@@ -14,6 +14,16 @@ export async function postJson(url: string, body: unknown): Promise<{ ok: boolea
   }
 }
 
+export async function patchJson(url: string, body: unknown): Promise<{ ok: boolean; data: unknown }> {
+  try {
+    const res = await fetch(url, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, data };
+  } catch {
+    return { ok: false, data: { error: { message: "Network error — your local data is safe." } } };
+  }
+}
+
 export function useGet<T>(url: string): { data: T | null; loading: boolean; error: string | null; reload: () => void } {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);

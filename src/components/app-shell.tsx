@@ -2,6 +2,7 @@
 
 import { useApp, type Screen } from "./app-state";
 import {
+  IconChecklist,
   IconDash,
   IconComp,
   IconFub,
@@ -28,6 +29,7 @@ import { CompLabScreen } from "./screens/comp-lab";
 import { SignalScoutScreen } from "./screens/signal-scout";
 import { PeopleScreen } from "./screens/people";
 import { FubScreen } from "./screens/follow-up-boss";
+import { TransactionsScreen } from "./screens/transactions";
 import { SettingsScreen } from "./screens/settings";
 import { NoteDialog, EmailDialog, DetailDialog } from "./dialogs";
 
@@ -43,6 +45,7 @@ const TITLES: Record<Screen, string> = {
   signals: "Signal Scout",
   people: "People & Deals",
   fub: "Follow Up Boss",
+  transactions: "Transactions",
   settings: "Settings",
 };
 
@@ -58,6 +61,7 @@ const NAV: { id: Screen; label: string; Icon: typeof IconToday }[] = [
   { id: "signals", label: "Signal Scout", Icon: IconSignal },
   { id: "people", label: "People & Deals", Icon: IconPeople },
   { id: "fub", label: "Follow Up Boss", Icon: IconFub },
+  { id: "transactions", label: "Transactions", Icon: IconChecklist },
   { id: "settings", label: "Settings", Icon: IconSettings },
 ];
 
@@ -164,6 +168,7 @@ export function AppShell() {
           {app.screen === "signals" && <SignalScoutScreen />}
           {app.screen === "people" && <PeopleScreen />}
           {app.screen === "fub" && <FubScreen />}
+          {app.screen === "transactions" && <TransactionsScreen />}
           {app.screen === "settings" && <SettingsScreen />}
           </div>
         </div>

@@ -13,7 +13,7 @@ import { ErrorBox, Loading, postJson, useGet, errText } from "../modules/shared"
 
 interface Todo { id: string; title: string; kind: string; done: boolean; contactName?: string | null; notes?: string | null }
 interface Ev { id: string; title: string; startsAt: string; endsAt?: string | null; location?: string | null; source: string; contactName?: string | null }
-interface Tx { id: string; side: string; address: string; priceDisplay: string; status: string; stage?: string | null; contactName?: string | null }
+interface Tx { id: string; side: string; address: string; priceDisplay: string; status: string; stage?: string | null; contactName?: string | null; checklist?: { done: number; total: number; overdue: number; dueSoon: number; nextDue: string | null } | null }
 interface Side { deals: number; volume: number; gci: number; gciUnknown: number }
 interface Buyer { id: string; contactId?: string | null; name: string; temperature: string; stage?: string | null; phone?: string | null; ceiling?: string | null; areas: string[]; hardConstraints: string[]; mustHaves: string[]; prefs: { label: string; weight: number }[] }
 interface Contact { id: string; name: string; role?: string | null; stage?: string | null; phone?: string | null; nextStep?: string | null; temperature?: string | null }
@@ -191,17 +191,26 @@ export function DashboardScreen() {
           <div className="glass-kicker">Active transactions</div>
           <div className="glass-title">{data.transactions.length} in play</div>
           {data.transactions.map((t) => (
-            <div key={t.id} className="glass-row" style={{ alignItems: "center" }}>
+            <button key={t.id} className="glass-row" style={{ alignItems: "center", width: "100%", textAlign: "left", font: "inherit", color: "inherit", background: "transparent", border: "none", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", cursor: "pointer" }} onClick={() => app.openTransaction(t.id)} aria-label={`Open ${t.address} checklist`}>
               <span className={`glass-pill ${t.side === "listing" ? "accent" : ""}`}>{t.side === "listing" ? "Listing" : "Buyer"}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: 14.5 }}>{t.address}</div>
                 <div className="text-muted" style={{ fontSize: 13 }}>{[t.contactName, t.stage].filter(Boolean).join(" · ")}</div>
+                {t.checklist ? (
+                  <div style={{ fontSize: 12.5, marginTop: 2, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <span>Checklist {t.checklist.done}/{t.checklist.total}</span>
+                    {t.checklist.nextDue && <span className="text-muted">Next due {t.checklist.nextDue}</span>}
+                    {t.checklist.overdue > 0 && <span style={{ color: "var(--color-accent)", fontWeight: 700 }}>{t.checklist.overdue} overdue</span>}
+                  </div>
+                ) : (
+                  <div className="text-muted" style={{ fontSize: 12.5, marginTop: 2 }}>No checklist yet — open to start one</div>
+                )}
               </div>
               <div style={{ textAlign: "right" }}>
                 <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800 }}>{t.priceDisplay}</div>
                 <span className="glass-pill" style={{ fontSize: 10 }}>{t.status}</span>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </div>

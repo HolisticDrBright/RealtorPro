@@ -5,6 +5,7 @@ import { buyerCriteriaProfiles, contacts, deals, properties, userProfiles } from
 import { calendarEvents, todos, transactions } from "@/db/schema.dashboard";
 import { matchOffMarket, ytdStats, type GamePlanInput, type OffMarketProperty } from "@/lib/dashboard";
 import { buildGamePlan } from "@/lib/dashboard";
+import { itemsFor, summaryFor } from "@/services/checklist";
 
 export function todayYmd(): string {
   return new Date().toISOString().slice(0, 10);
@@ -116,7 +117,11 @@ export function loadDashboard() {
     todos: todoRows.map((t) => ({ ...t, contactName: nameOf(t.contactId) })),
     events: eventRows.map((e) => ({ ...e, contactName: nameOf(e.contactId) })),
     todayEvents: todayEvents.map((e) => ({ ...e, contactName: nameOf(e.contactId) })),
-    transactions: active.map((t) => ({ ...t, contactName: nameOf(t.contactId), priceDisplay: money(t.price) })),
+    transactions: active.map((t) => {
+      const items = itemsFor(t.id);
+      const s = items.length ? summaryFor(t, items) : null;
+      return { ...t, contactName: nameOf(t.contactId), priceDisplay: money(t.price), checklist: s ? { done: s.done, total: s.total, overdue: s.overdue, dueSoon: s.dueSoon, nextDue: s.nextDue } : null };
+    }),
     ytd,
     buyers,
     offMarketMatches,

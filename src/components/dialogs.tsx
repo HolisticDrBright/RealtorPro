@@ -13,6 +13,22 @@ function Backdrop({ onClose, children }: { onClose: () => void; children: React.
 
 const stop = (e: React.MouseEvent) => e.stopPropagation();
 
+/** Generic confirm dialog for destructive actions (reset checklist, …). Render it only when open. */
+export function ConfirmDialog({ title, body, confirmLabel = "Confirm", onConfirm, onCancel }: { title: string; body: string; confirmLabel?: string; onConfirm: () => void; onCancel: () => void }) {
+  return (
+    <Backdrop onClose={onCancel}>
+      <div className="dialog" role="alertdialog" aria-modal="true" aria-label={title} onClick={stop}>
+        <div className="dialog-title">{title}</div>
+        <div style={{ fontSize: 14.5 }}>{body}</div>
+        <div className="dialog-actions">
+          <button className="btn btn-secondary" onClick={onCancel}>Cancel</button>
+          <button className="btn btn-primary" onClick={onConfirm}>{confirmLabel}</button>
+        </div>
+      </div>
+    </Backdrop>
+  );
+}
+
 export function NoteDialog() {
   const app = useApp();
   if (!app.noteOpen) return null;

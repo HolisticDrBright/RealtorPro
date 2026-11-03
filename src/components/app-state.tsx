@@ -31,6 +31,7 @@ export type Screen =
   | "signals"
   | "people"
   | "fub"
+  | "transactions"
   | "settings";
 export type ImportState = "idle" | "parsing" | "ready" | "error";
 export type CampaignState = "idle" | "generating" | "review";
@@ -72,12 +73,16 @@ interface AppContextValue {
   recording: boolean;
   email: EmailPayload | null;
   detail: Match | null;
+  /** Transaction the Transactions screen opens on (dashboard / Today deep-link). */
+  selectedTransactionId: string | null;
   // derived
   buyer: Buyer;
   importState: ImportState;
   // actions
   setScreen: (s: Screen) => void;
   goto: (s: Screen, contactId?: string) => void;
+  /** Select a transaction and open the Transactions screen. */
+  openTransaction: (transactionId: string | null) => void;
   pickBuyer: (id: string) => void;
   pickContact: (id: string) => void;
   toggleTheme: () => void;
@@ -142,6 +147,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [recording, setRecording] = useState(false);
   const [email, setEmail] = useState<EmailPayload | null>(null);
   const [detail, setDetail] = useState<Match | null>(null);
+  const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stepTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -163,6 +169,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const goto = useCallback((s: Screen, cId?: string) => {
     setScreen(s);
     if (cId) setContactId(cId);
+  }, []);
+
+  const openTransaction = useCallback((transactionId: string | null) => {
+    setSelectedTransactionId(transactionId);
+    setScreen("transactions");
   }, []);
 
   // Keyboard shortcuts (Esc closes dialogs, N opens capture note).
@@ -358,10 +369,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     recording,
     email,
     detail,
+    selectedTransactionId,
     buyer,
     importState,
     setScreen,
     goto,
+    openTransaction,
     pickBuyer: setBuyerId,
     pickContact: setContactId,
     toggleTheme: () => setTheme((t) => (t === "light" ? "dark" : "light")),
