@@ -5,6 +5,7 @@ import * as s from "@/db/schema";
 import { addDays, nextRecurrence, ymd } from "@/lib/dates";
 import { estCommission } from "@/lib/calc";
 import type { EntityName } from "@/lib/registry";
+import { applyFlags, instantiateChecklist, itemsFor, recomputeDueDates } from "./checklist";
 
 /**
  * Side effects that keep the model coherent: a completed call updates the
@@ -50,6 +51,8 @@ export function afterCreate(entity: EntityName, row: Row) {
       if (existing.length === 0 && row.status === "escrow") defaultMilestones(row.id as string, (row.escrowOpenedAt as string) ?? ymd(), (row.closingDate as string) ?? null);
       if (row.contactId) { db.update(s.contacts).set({ stage: row.status === "closed" ? "closed" : "in_escrow", updatedAt: now() }).where(eq(s.contacts.id, row.contactId as string)).run(); logActivity({ contactId: row.contactId as string, type: "transaction", summary: `${row.status === "closed" ? "Closed" : "Opened escrow on"} ${addr(row.propertyId as string)}`, refType: "transaction", refId: row.id as string }); }
       if (row.listingId) db.update(s.listings).set({ status: row.status === "closed" ? "closed" : "in_escrow", updatedAt: now() }).where(eq(s.listings.id, row.listingId as string)).run();
+      // Every new escrow gets the California checklist for its side.
+      if (row.status === "escrow" && itemsFor(row.id as string).length === 0) { try { instantiateChecklist(row.id as string); } catch (err) { console.error("[checklist] could not start checklist:", err); } }
       break;
     }
     case "listings": if (row.sellerContactId) db.update(s.contacts).set({ stage: "active_seller", updatedAt: now() }).where(and(eq(s.contacts.id, row.sellerContactId as string), eq(s.contacts.stage, "new_lead"))).run(); break;
@@ -100,6 +103,9 @@ export function afterUpdate(entity: EntityName, before: Row, after: Row) {
         notify({ title: `Closed — ${addr(after.propertyId as string)}`, body: "YTD volume, GCI, net income and goal progress updated.", kind: "success", href: "/income" });
       }
       if (before.status !== "cancelled" && after.status === "cancelled" && after.listingId) db.update(s.listings).set({ status: "active", updatedAt: now() }).where(eq(s.listings.id, after.listingId as string)).run();
+      // Checklist: a changed anchor date recomputes due dates (overrides and done items untouched); changed conditions add or retire items.
+      if (["escrowOpenedAt", "closingDate", "listingSignedAt", "acceptanceAt", "disclosureDeliveredAt"].some((k) => before[k] !== after[k])) recomputeDueDates(after.id as string);
+      if (JSON.stringify(before.flags ?? {}) !== JSON.stringify(after.flags ?? {})) applyFlags(after.id as string);
       break;
     case "offers":
       if (before.status !== after.status && after.contactId) {

@@ -24,6 +24,7 @@ export const NAV: { href: string; label: string; icon: ReactNode; key?: string }
   { href: "/listings", label: "Listings", icon: <I d="M4 4h16v16H4zM4 10h16M10 10v10" />, key: "6" },
   { href: "/pipeline", label: "Pipeline", icon: <I d="M4 6h4v12H4zM10 6h4v8h-4zM16 6h4v5h-4z" />, key: "7" },
   { href: "/transactions", label: "Transactions", icon: <I d="M3 6h18M3 12h18M3 18h12" />, key: "8" },
+  { href: "/checklist", label: "Checklist", icon: <I d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 13l2 2 4-4" /> },
   { href: "/contacts", label: "Contacts", icon: <I d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z" />, key: "9" },
   { href: "/calendar", label: "Calendar", icon: <I d="M3 5h18v16H3zM3 10h18M8 3v4M16 3v4" /> },
   { href: "/income", label: "Sales & Income", icon: <I d="M12 2v20M17 6.5C17 4.6 14.8 3 12 3S7 4.6 7 6.5 9.2 10 12 10s5 1.6 5 3.5-2.2 3.5-5 3.5-5-1.6-5-3.5" /> },

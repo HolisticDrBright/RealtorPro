@@ -31,6 +31,7 @@ export const schemas = {
   transactions: z.object({
     propertyId: z.string().min(1, "Choose a property"), listingId: str, contactId: str, side: z.enum(["buyer", "seller", "both"]).optional(), status: en(s.TX_STATUSES), purchasePrice: z.coerce.number().positive("Purchase price is required"),
     commissionPct: num, referralFee: num, brokerSplitPct: num, expenses: num, leadSource: str, escrowOpenedAt: str, closingDate: str, closedAt: str, notes: str,
+    listingSignedAt: str, acceptanceAt: str, disclosureDeliveredAt: str, flags: z.record(z.boolean()).optional(),
   }),
   milestones: z.object({ transactionId: z.string().min(1), name: z.string().min(1), dueDate: str, completedAt: str, sortOrder: int, notes: str }),
   offers: z.object({ contactId: str, propertyId: str, listPrice: num, offerPrice: z.coerce.number().positive("Offer price is required"), submittedAt: str, sellerCounter: num, currentOffer: num, financing: str, downPayment: num, closingTimeline: str, contingencies: list, status: en(s.OFFER_STATUSES), notes: str }),

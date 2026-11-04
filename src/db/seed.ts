@@ -5,10 +5,13 @@
  */
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
+import { eq } from "drizzle-orm";
 import fs from "node:fs";
 import * as s from "./schema";
 import { DB_FILE, WORKSPACE_SUBDIRS } from "../lib/paths";
 import { addDays, ymd } from "../lib/dates";
+import { TEMPLATES, templateForSide } from "../data/checklist-templates";
+import { buildItems } from "../lib/checklist";
 
 for (const dir of WORKSPACE_SUBDIRS) fs.mkdirSync(dir, { recursive: true });
 const sqlite = new Database(DB_FILE);
@@ -25,7 +28,7 @@ const thisYear = (m: number, day: number) => `${Y}-${String(m).padStart(2, "0")}
 const closedOn = (m: number, day: number) => (new Date(Y, m - 1, day) <= now ? thisYear(m, day) : `${Y - 1}-${String(m).padStart(2, "0")}-${String(day).padStart(2, "0")}`);
 
 // Wipe in dependency order.
-for (const t of [s.notifications, s.touchpoints, s.opportunities, s.activities, s.notes, s.appointments, s.calls, s.tasks, s.offers, s.milestones, s.transactions, s.listings, s.properties, s.sellers, s.buyers, s.contacts, s.settings]) db.delete(t).run();
+for (const t of [s.notifications, s.touchpoints, s.opportunities, s.activities, s.notes, s.appointments, s.calls, s.tasks, s.offers, s.milestones, s.checklistItems, s.checklistTemplates, s.transactions, s.listings, s.properties, s.sellers, s.buyers, s.contacts, s.settings]) db.delete(t).run();
 
 db.insert(s.settings).values({ id: "st1", agentName: "Vanessa Bukowski", title: "Luxury Real Estate Advisor", brokerage: "SERHANT.", annualGoal: 200000, defaultCommissionPct: 2.5, defaultSplitPct: 68 }).run();
 
@@ -128,9 +131,9 @@ const closed: T[] = [
   { id: "t11", propertyId: "p18", contactId: null, side: "buyer", status: "closed", purchasePrice: 2050000, commissionPct: 2, referralFee: 0, brokerSplitPct: 68, expenses: 3200, leadSource: "website", escrowOpenedAt: closedOn(5, 12), closingDate: closedOn(6, 24), closedAt: closedOn(6, 24) },
 ];
 const escrows: T[] = [
-  { id: "e1", propertyId: "p4", listingId: "l6", contactId: "c8", side: "seller", status: "escrow", purchasePrice: 4250000, commissionPct: 2.5, referralFee: 0, brokerSplitPct: 68, expenses: 1800, leadSource: "referral", escrowOpenedAt: d(-16), closingDate: d(14), notes: "Buyer financing with First Republic; appraisal this week." },
-  { id: "e2", propertyId: "p5", contactId: "c4", side: "buyer", status: "escrow", purchasePrice: 3100000, commissionPct: 2.5, referralFee: 0, brokerSplitPct: 68, expenses: 800, leadSource: "past_client", escrowOpenedAt: d(-8), closingDate: d(22), notes: "Michael's investment purchase." },
-  { id: "e3", propertyId: "p6", listingId: "l7", contactId: "c9", side: "seller", status: "escrow", purchasePrice: 2850000, commissionPct: 2.5, referralFee: 0, brokerSplitPct: 68, expenses: 1400, leadSource: "sphere", escrowOpenedAt: d(-1), closingDate: d(29), notes: "" },
+  { id: "e1", propertyId: "p4", listingId: "l6", contactId: "c8", side: "seller", status: "escrow", listingSignedAt: d(-40), disclosureDeliveredAt: d(-10), flags: { hoa: true, pre1978: true }, purchasePrice: 4250000, commissionPct: 2.5, referralFee: 0, brokerSplitPct: 68, expenses: 1800, leadSource: "referral", escrowOpenedAt: d(-16), closingDate: d(14), notes: "Buyer financing with First Republic; appraisal this week." },
+  { id: "e2", propertyId: "p5", contactId: "c4", side: "buyer", status: "escrow", listingSignedAt: d(-35), disclosureDeliveredAt: d(-3), flags: { financed: true }, purchasePrice: 3100000, commissionPct: 2.5, referralFee: 0, brokerSplitPct: 68, expenses: 800, leadSource: "past_client", escrowOpenedAt: d(-8), closingDate: d(22), notes: "Michael's investment purchase." },
+  { id: "e3", propertyId: "p6", listingId: "l7", contactId: "c9", side: "seller", status: "escrow", listingSignedAt: d(-21), flags: { financed: true, fhsz: true }, purchasePrice: 2850000, commissionPct: 2.5, referralFee: 0, brokerSplitPct: 68, expenses: 1400, leadSource: "sphere", escrowOpenedAt: d(-1), closingDate: d(29), notes: "" },
 ];
 const lastYear: T[] = [1450000, 1250000, 1900000, 1100000, 2200000, 1650000, 1300000, 1750000, 1400000].map((price, i) => ({ id: `ly${i + 1}`, propertyId: ["p8", "p9", "p10", "p11", "p12", "p13", "p15", "p16", "p17"][i], contactId: null, side: i % 3 === 0 ? "seller" : "buyer", status: "closed", purchasePrice: price, commissionPct: 2.5, referralFee: 0, brokerSplitPct: 68, expenses: 1200, leadSource: ["referral", "sphere", "zillow"][i % 3], escrowOpenedAt: `${Y - 1}-${String(i + 1).padStart(2, "0")}-05`, closingDate: `${Y - 1}-${String(i + 1).padStart(2, "0")}-28`, closedAt: `${Y - 1}-${String(i + 1).padStart(2, "0")}-28` }));
 db.insert(s.transactions).values([...closed, ...escrows, ...lastYear]).run();
@@ -142,6 +145,22 @@ ms("e2", [["Offer Accepted", -8, true], ["Deposit Due", -5, true], ["Seller Disc
 ms("e3", [["Offer Accepted", -1, true], ["Deposit Due", 2, false], ["Seller Disclosures", 5, false], ["Inspection", 7, false], ["Appraisal", 10, false], ["Repair Requests", 12, false], ["Inspection Contingency", 16, false], ["Loan Contingency", 20, false], ["Contingency Removal", 21, false], ["Final Walkthrough", 27, false], ["Closing", 29, false]]);
 
 // ── Offers ────────────────────────────────────────────────────────────────
+// California transaction checklists: seed the two templates and build one per escrow
+// (same pure builder the app uses). Early-phase items are marked done so progress shows.
+for (const t of TEMPLATES) db.insert(s.checklistTemplates).values({ id: `tpl-${t.key}`, key: t.key, side: t.side, name: t.name, version: t.version, phases: t.phases, isDefault: true }).run();
+let checklistCount = 0;
+for (const tx of escrows) {
+  const txId = tx.id as string;
+  const tpl = templateForSide(tx.side === "buyer" ? "buyer" : "listing");
+  const built = buildItems(tpl, tx.flags ?? {}, { listing_signed: tx.listingSignedAt, acceptance: tx.escrowOpenedAt, coe: tx.closingDate, disclosure_delivery: tx.disclosureDeliveredAt ?? null });
+  const doneCount = tx.id === "e1" ? 30 : tx.id === "e2" ? 20 : 8;
+  // Early-phase items and anything that came due more than two days ago are done; a few recent deadlines stay open.
+  built.forEach((b, i) => { const done = i < doneCount || (!!b.dueDate && b.dueDate < d(-2)); db.insert(s.checklistItems).values({ ...b, transactionId: txId, templateId: `tpl-${tpl.key}`, status: done ? "done" : "pending", completedAt: done ? iso(-1) : null }).run(); });
+  db.update(s.transactions).set({ checklistTemplateId: `tpl-${tpl.key}` }).where(eq(s.transactions.id, txId)).run();
+  checklistCount += built.length;
+}
+console.log("✔ Checklists:", { templates: TEMPLATES.length, items: checklistCount });
+
 db.insert(s.offers).values([
   { id: "o1", contactId: "c2", propertyId: "p2", listPrice: 3750000, offerPrice: 3550000, submittedAt: d(-2), sellerCounter: 3650000, currentOffer: 3550000, financing: "Conventional, 30% down", downPayment: 1065000, closingTimeline: "30 days", contingencies: ["Inspection 10d", "Appraisal", "Loan 17d"], status: "countered", notes: "Seller countered at $3.65M. James wants to hold at $3.6M." },
   { id: "o2", contactId: "c5", propertyId: "p3", listPrice: 8900000, offerPrice: 8200000, submittedAt: d(-30), sellerCounter: null, currentOffer: 8200000, financing: "Conventional", downPayment: 2460000, closingTimeline: "45 days", contingencies: ["Inspection", "Appraisal", "Loan"], status: "rejected", notes: "Too far below list; seller not ready to move." },

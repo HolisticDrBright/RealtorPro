@@ -90,6 +90,7 @@ function TxDetail({ t, milestones, lk, onEdit, onDelete }: { t: Tx; milestones: 
       <div className="flex gap-2 flex-wrap">
         {t.status === "escrow" && <button className="btn btn-primary" onClick={async () => { const r = await api.update("transactions", t.id, { status: "closed", closedAt: ymd() }); if (r.ok) toast("Closed — YTD, GCI, net income and goal updated"); }}>Mark closed</button>}
         {t.status === "escrow" && <button className="btn" onClick={async () => { const r = await api.update("transactions", t.id, { status: "cancelled" }); if (r.ok) toast("Marked cancelled"); }}>Cancel escrow</button>}
+        {t.status === "escrow" && <Link href={`/checklist?tx=${t.id}`} className="btn">Open checklist →</Link>}
         <button className="btn" onClick={() => quickAdd("tasks", { transactionId: t.id, propertyId: t.propertyId, contactId: t.contactId, category: "escrow" })}>+ Task</button>
         <button className="btn" onClick={() => quickAdd("notes", { transactionId: t.id, propertyId: t.propertyId, contactId: t.contactId })}>+ Note</button>
         <span className="ml-auto"><RowMenu onEdit={onEdit} onDelete={onDelete} /></span>

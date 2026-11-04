@@ -130,6 +130,7 @@ export default function DashboardPage() {
     if (p.taskId) { await api.update("tasks", p.taskId, { completedAt: done ? new Date().toISOString() : null }); toast(done ? "Task completed" : "Reopened"); }
     else if (p.kind === "call") { await api.update("calls", p.id.replace("call-", ""), { status: "completed", completedAt: new Date().toISOString() }); toast("Call logged"); }
     else if (p.kind === "milestone") { await api.update("milestones", p.id.replace("ms-", ""), { completedAt: new Date().toISOString() }); toast("Milestone complete"); }
+    else if (p.kind === "checklist") { await api.update("checklist/items", p.id.replace("ck-", ""), { status: "done" }); toast("Checklist item done"); }
     else if (p.kind === "vault") window.open(p.href, "_self");
     else toast("Open the item to work it — this one isn't a checkbox task", "err");
   }

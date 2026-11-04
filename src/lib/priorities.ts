@@ -8,7 +8,7 @@ import { daysSince, daysUntil, nextAnniversary } from "./dates";
 export type Priority = "critical" | "high" | "medium" | "low";
 export interface PriorityItem {
   id: string;
-  kind: "task" | "call" | "buyer" | "listing" | "milestone" | "offer" | "appointment" | "lead" | "birthday" | "followup" | "vault";
+  kind: "task" | "call" | "buyer" | "listing" | "milestone" | "offer" | "appointment" | "lead" | "birthday" | "followup" | "vault" | "checklist";
   title: string;
   subtitle: string | null;
   priority: Priority;
@@ -36,6 +36,8 @@ export interface PriorityInput {
   addresses: (propertyId: string | null) => string | null;
   /** Open checkbox tasks from the Obsidian vault (today's daily note, #command-center notes). */
   vaultTasks?: { text: string; note: string; uri: string }[];
+  /** Open transaction-checklist items due soon or overdue (effective due date). */
+  checklistDue?: { id: string; title: string; code: string; due: string; transactionId: string; address: string | null }[];
 }
 
 const P: Record<Priority, number> = { critical: 400, high: 300, medium: 200, low: 100 };
@@ -114,6 +116,12 @@ export function buildPriorities(input: PriorityInput, limit = 14): PriorityItem[
       const d = daysUntil(nextAnniversary(c.birthday, now), now);
       if (d <= 1) out.push({ id: `bday-${c.id}`, kind: "birthday", title: `${names(c.id)}'s birthday ${d === 0 ? "is today" : "is tomorrow"}`, subtitle: "Send a note or a small gift", priority: "medium", dueDate: nextAnniversary(c.birthday, now), dueTime: null, contactId: c.id, propertyId: null, transactionId: null, href: `/contacts/${c.id}`, taskId: null, score: 240 });
     }
+  }
+  // Transaction checklist deadlines within 72 hours / overdue — the three most urgent, so the
+  // list stays a mix; the rest live on the Checklist page.
+  for (const c of (input.checklistDue ?? []).filter((c) => daysUntil(c.due, now) <= 3).sort((a, b) => a.due.localeCompare(b.due)).slice(0, 3)) {
+    const d = daysUntil(c.due, now);
+    out.push({ id: `ck-${c.id}`, kind: "checklist", title: `${c.title} ${d < 0 ? `— ${-d}d overdue` : d === 0 ? "— due today" : `— due in ${d}d`}`, subtitle: [c.address, `Checklist ${c.code}`].filter(Boolean).join(" · "), priority: d <= 1 ? "critical" : "high", dueDate: c.due, dueTime: null, contactId: null, propertyId: null, transactionId: c.transactionId, href: `/checklist?tx=${c.transactionId}`, taskId: null, score: 478 - d * 10 });
   }
   for (const [i, v] of (input.vaultTasks ?? []).entries()) {
     out.push({ id: `vault-${i}-${v.text.slice(0, 24)}`, kind: "vault", title: v.text, subtitle: `Obsidian · ${v.note}`, priority: "medium", dueDate: null, dueTime: null, contactId: null, propertyId: null, transactionId: null, href: v.uri, taskId: null, score: 405 - i });

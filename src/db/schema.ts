@@ -1,5 +1,6 @@
 import { index, integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
+import type { Condition, TemplatePhase } from "../data/checklist-templates";
 
 /**
  * Relational model for the command center. One `contacts` row per person —
@@ -169,10 +170,61 @@ export const transactions = sqliteTable(
     closingDate: text("closing_date"),
     closedAt: text("closed_at"),
     notes: text("notes"),
+    // Transaction checklist anchors (YYYY-MM-DD). Acceptance falls back to
+    // escrowOpenedAt and close of escrow is closingDate, so existing records work as-is.
+    listingSignedAt: text("listing_signed_at"), // listing agreement, or buyer representation agreement on the buyer side
+    acceptanceAt: text("acceptance_at"),
+    disclosureDeliveredAt: text("disclosure_delivered_at"),
+    checklistTemplateId: text("checklist_template_id"),
+    // Conditions that switch conditional checklist items on (pre1978, hoa, financed, …). All default off.
+    flags: json<Partial<Record<Condition, boolean>>>("flags").default({}),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => ({ statusIdx: index("tx_status_idx").on(t.status) }),
+);
+
+// ─── Transaction checklist ────────────────────────────────────────────────
+// A seeded, editable copy of each California checklist template plus the
+// per-transaction items built from it. Tracks and reminds only.
+export const checklistTemplates = sqliteTable("checklist_templates", {
+  id: id(),
+  key: text("key").notNull().unique(),
+  side: text("side").notNull(), // listing | buyer
+  name: text("name").notNull(),
+  version: text("version").notNull(),
+  phases: json<TemplatePhase[]>("phases").notNull(),
+  isDefault: integer("is_default", { mode: "boolean" }).notNull().default(true),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+export const checklistItems = sqliteTable(
+  "checklist_items",
+  {
+    id: id(),
+    transactionId: text("transaction_id").notNull().references(() => transactions.id, { onDelete: "cascade" }),
+    templateId: text("template_id").notNull(),
+    phaseKey: text("phase_key").notNull(),
+    phaseOrder: integer("phase_order").notNull(),
+    code: text("code").notNull(),
+    title: text("title").notNull(),
+    kind: text("kind").notNull(), // task | document
+    owner: text("owner").notNull(),
+    formCode: text("form_code"),
+    formRev: text("form_rev"),
+    authority: text("authority"),
+    status: text("status").notNull().default("pending"), // pending | done | na | waived
+    dueDate: text("due_date"), // computed, YYYY-MM-DD
+    dueOverride: text("due_override"), // wins over dueDate when set
+    taskId: text("task_id"), // tasks.id when added to the to-do list
+    notes: text("notes"),
+    sortOrder: integer("sort_order").notNull(),
+    completedAt: text("completed_at"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => ({ txIdx: index("ci_tx_idx").on(t.transactionId), dueIdx: index("ci_due_idx").on(t.dueDate) }),
 );
 
 export const MILESTONES = ["Offer Accepted", "Deposit Due", "Inspection", "Inspection Contingency", "Appraisal", "Loan Contingency", "Seller Disclosures", "Repair Requests", "Final Walkthrough", "Contingency Removal", "Closing"] as const;

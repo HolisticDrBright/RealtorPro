@@ -9,6 +9,7 @@ import { matchAll, type BuyerCriteria, type Candidate } from "@/lib/match";
 import { buildFollowUps } from "@/lib/followups";
 import { loadContext } from "./context";
 import { indexVaultIfChanged, vaultTasks } from "./obsidian";
+import { dueBetween } from "./checklist";
 
 /** Everything the home screen needs in one pass. */
 export function loadDashboard(now = new Date()) {
@@ -61,8 +62,10 @@ export function loadDashboard(now = new Date()) {
 
   let vTasks: { text: string; note: string; uri: string }[] = [];
   try { indexVaultIfChanged(); vTasks = vaultTasks(); } catch { /* vault optional */ }
+  let checklistDue: ReturnType<typeof dueBetween> = [];
+  try { checklistDue = dueBetween(ymd(addDays(now, -60)), ymd(addDays(now, 3))); } catch { /* checklist tables may not exist yet */ }
   const priorities = buildPriorities({
-    now, names: ctx.names, addresses: ctx.addresses, vaultTasks: vTasks,
+    now, names: ctx.names, addresses: ctx.addresses, vaultTasks: vTasks, checklistDue,
     tasks, calls: db.select().from(s.calls).where(eq(s.calls.status, "scheduled")).all(),
     buyers: buyersAll.map((b) => ({ id: b.id, contactId: b.contactId, temperature: b.temperature, lastContactAt: ctx.contact(b.contactId)?.lastContactAt ?? null, timeline: b.timeline })),
     listings: listingsAll, milestones: milestonesOpen, offers, appointments: appts,
